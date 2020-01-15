@@ -1,4 +1,4 @@
-rm(list=ls())
+m(list=ls())
 ## prepares raw data and creates dataset for analyses
 
 save.dir <- "~/Dropbox/urbanbeeparasites_saved"
@@ -20,7 +20,7 @@ apisPP$IDNum <- NULL
 vosPP$Date <- NA
 vosPP$Genus  <- "Bombus"
 vosPP$Species  <- "vosnesenskii"
-vosPP <- vosPP[,colnames(apisPP)]
+vosPP <- vosPP[, colnames(apisPP)]
 
 ## create a single parasite and pathogen dataset for both species
 par.path <- rbind(apisPP, vosPP)
@@ -28,17 +28,17 @@ par.path <- rbind(apisPP, vosPP)
 ## fix site names to match between datasets
 par.path$Site <- as.character(par.path$Site)
 par.path$Site[par.path$Site ==
-          "Coyote"]  <- "CoyoteCreek"
+              "Coyote"]  <- "CoyoteCreek"
 par.path$Site[par.path$Site ==
               "Beach"]  <- "BeachFlats"
 par.path$Site[par.path$Site ==
-          "Beach Flats"]  <- "BeachFlats"
+              "Beach Flats"]  <- "BeachFlats"
 par.path$Site[par.path$Site ==
-          "La Colina"]  <- "LaColina"
+              "La Colina"]  <- "LaColina"
 par.path$Site[par.path$Site ==
               "Laguna "]  <- "LagunaSeca"
 par.path$Site[par.path$Site ==
-          "Laguna"]  <- "LagunaSeca"
+              "Laguna"]  <- "LagunaSeca"
 par.path$Site[par.path$Site ==
               "Prusch"]  <- "PruschPark"
 
@@ -147,32 +147,68 @@ site.char <- merge(site.char,
                    unique(veg[, c("Site", "Size", "natural1000m",
                                   "natural2000m")]))
 
+## *************************************************************
+## calculate densities to control for garden size
 
+site.char$BeeDensity <- site.char$BeeAbund/site.char$Size
+site.char$BeeRichnessArea <- site.char$BeeRichness/site.char$Size
+
+site.char$WoodyFlowerDensity <- site.char$AbundWoodyFlowers/site.char$Size
+site.char$AnnualFlowerDensity <-
+    site.char$AbundAnnualFlowers/site.char$Size
+site.char$PlantRichnessArea <- site.char$PlantRichness/site.char$Size
+
+## *************************************************************
+## calculate total sick individuals for each site, bad thing
+
+sick.totals <- aggregate(par.path[c(parasites, pathogens)],
+                         list(Site=par.path$Site,
+                              Genus=par.path$Genus),
+                         sum, na.rm=TRUE)
+
+tested.totals <- aggregate(par.path[c(parasites, pathogens)],
+                           list(Site=par.path$Site,
+                                Genus=par.path$Genus),
+                           function(x) sum(!is.na(x)))
+
+sick.totals$ScreenedPath <- tested.totals$CBPV
+sick.totals$ScreenedPar <- tested.totals$Phorid
+
+sick.totals[,parasites] <-
+    sick.totals[,parasites]/sick.totals$ScreenedPar
+sick.totals[,pathogens] <-
+    sick.totals[,pathogens]/sick.totals$ScreenedPath
+
+## *************************************************************
+## standardize varaibles
+path.variables <- c("WoodyFlowerDensity", "AnnualFlowerDensity",
+                    "PlantRichnessArea", "natural1000m",
+                    "natural2000m", "PercentBareSoil", "BeeDensity")
+
+standardize <- function(x)
+(x-mean(x, na.rm=TRUE))/sd(x, na.rm=TRUE)
+
+site.char[,path.variables] <- apply(site.char[,path.variables], 2,
+                                    standardize)
+
+## *************************************************************
+## merge pathogen and site data
 
 dim(par.path)
-
 ## okay to drop controls
 par.path$Site[!par.path$Site %in% site.char$Site]
 
 par.path <- merge(par.path, site.char)
 dim(par.path)
 
-## *************************************************************
-## calculate densities to control for garden size
-
-par.path$BeeDensity <- par.path$BeeAbund/par.path$Size
-par.path$BeeRichnessArea <- par.path$BeeRichness/par.path$Size
-
-par.path$WoodyFlowerDensity <- par.path$AbundWoodyFlowers/par.path$Size
-par.path$AnnualFlowerDenisty <-
-    par.path$AbundAnnualFlowers/par.path$Size
-par.path$PlantRichnessArea <- par.path$PlantRichness/par.path$Size
-
+sick.totals <- merge(sick.totals, site.char)
 
 ## write out final data
 write.csv(par.path, file=file.path(save.dir,
-                           "specimens-complete.csv"), row.names=FALSE)
+                                   "specimens-complete.csv"), row.names=FALSE)
 
 save.dir.git <- "~/Dropbox/urbanbeeparasites/data"
-save(par.path, file=file.path(save.dir.git, "specimens-complete.Rdata"))
+save(par.path,
+     site.char, sick.totals,
+     file=file.path(save.dir.git, "specimens-complete.Rdata"))
 
