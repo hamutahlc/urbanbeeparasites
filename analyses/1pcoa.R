@@ -14,11 +14,11 @@ pathogens <- c("CBPV", "DWV_KV_VDV", "ABPV_KBV_IAPV",
 GenSp <- par.path$Genus
 Sites <- par.path$Site
 
-parasite.comms <- calcPcoa(par.path, parasites, nperm=100, GenSp,
+parasite.comms <- calcPcoa(par.path, parasites, nperm=1000, GenSp,
                            Sites)
 parasite.comms$tests
 
-pathogens.comms <- calcPcoa(par.path, pathogens, nperm=100, GenSp,
+pathogens.comms <- calcPcoa(par.path, pathogens, nperm=1000, GenSp,
                             Sites)
 pathogens.comms$tests
 

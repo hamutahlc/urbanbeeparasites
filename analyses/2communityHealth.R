@@ -3,11 +3,8 @@ setwd("analyses")
 rm(list=ls())
 library(piecewiseSEM)
 library(lme4)
-library(lmerTest)
 
 load("../data/specimens-complete.Rdata")
-bombus <- par.path[par.path$Genus == "Bombus",]
-apis <- par.path[par.path$Genus == "Apis",]
 
 ## *************************************************************
 ## make formulas for path analyses
@@ -46,6 +43,8 @@ calcMods <- function(this.formula, formula.bee,
                        data = dats))
 }
 ## *************************************************************
+bombus <- par.path[par.path$Genus == "Bombus",]
+apis <- par.path[par.path$Genus == "Apis",]
 
 ## bumbles
 bombus.mods <- lapply(formulas.par.path, calcMods,

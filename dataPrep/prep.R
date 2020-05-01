@@ -1,4 +1,4 @@
-m(list=ls())
+rm(list=ls())
 ## prepares raw data and creates dataset for analyses
 
 save.dir <- "~/Dropbox/urbanbeeparasites_saved"
@@ -199,6 +199,7 @@ dim(par.path)
 par.path$Site[!par.path$Site %in% site.char$Site]
 
 par.path <- merge(par.path, site.char)
+par.path$Date <- NULL
 dim(par.path)
 
 sick.totals <- merge(sick.totals, site.char)
