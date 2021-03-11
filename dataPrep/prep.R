@@ -1,8 +1,8 @@
 rm(list=ls())
 ## prepares raw data and creates dataset for analyses
 
-save.dir <- "~/Dropbox/urbanbeeparasites_saved"
-## save.dir <- "/Volumes/Mac\ 2/Dropbox/urbanbeeparasites_saved"
+## save.dir <- "~/Dropbox/urbanbeeparasites_saved"
+save.dir <- "/Volumes/Mac\ 2/Dropbox/urbanbeeparasites_saved"
 
 bees <- read.csv(file.path(save.dir,
                            "BeeDiversity/BeeIDs2per2015.csv"),
@@ -226,9 +226,18 @@ sick.totals[,pathogens] <-
 
 ## *************************************************************
 ## standardize varaibles
-path.variables <- c("WoodyFlowerDensity", "AnnualFlowerDensity",
-                    "PlantRichnessArea", "natural1000m",
-                    "natural2000m", "PercentBareSoil", "BeeDensity")
+path.variables <- c("WoodyFlowerDensity", "AbundWoodyFlowers",
+                    "AnnualFlowerDensity", "AbundAnnualFlowers",
+                    "PlantRichness",
+                    "PlantRichnessArea",
+                    "natural1000m",
+                    "natural2000m",
+                    "PercentBareSoil",
+                    "BeeDensity",
+                    "BeeAbund",
+                    "ApisAbund",
+                    "BombusAbund",
+                    "BeeRichness")
 
 standardize <- function(x)
 (x-mean(x, na.rm=TRUE))/sd(x, na.rm=TRUE)
@@ -253,9 +262,9 @@ sick.totals <- merge(sick.totals, site.char)
 write.csv(par.path, file=file.path(save.dir,
                                    "specimens-complete.csv"), row.names=FALSE)
 
-## save.dir.git <- "/Volumes/Mac\ 2/Dropbox/urbanbeeparasites_saved"
+save.dir.git <- "/Volumes/Mac\ 2/Dropbox/urbanbeeparasites/data"
 
-save.dir.git <- "~/Dropbox/urbanbeeparasites/data"
+## save.dir.git <- "~/Dropbox/urbanbeeparasites/data"
 save(par.path,
      site.char, sick.totals,
      file=file.path(save.dir.git, "specimens-complete.Rdata"))

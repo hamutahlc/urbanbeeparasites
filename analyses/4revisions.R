@@ -1,8 +1,8 @@
 ## *************************************************************************************
 ## REV 1.5 make formulas for path analyses, with honey bee/bumble bee instead of bee richness
 ## *************************************************************************************
-
-setwd("analyses")
+## setwd("/Volumes/Mac 2/Dropbox/urbanbeeparasites/analyses")
+## setwd("analyses")
 rm(list=ls())
 library(piecewiseSEM)
 library(lme4)
@@ -11,13 +11,14 @@ load("../data/specimens-complete.Rdata")
 
 ##*********** HONEY BEE ABUNDANCE************
 ## formula for site effects on the bee community
-formula.bee <- formula(HBAbund~ natural1000m +
-                         WoodyFlowerDensity +
-                         AnnualFlowerDensity)
+formula.bee <- formula(ApisAbund~ natural1000m +
+                         AbundWoodyFlowers +
+                         AbundAnnualFlowers)
 
 ys <- c("AnyParasite", "ParasiteRichness", "AnyPathogen",
         "PathogenRichness")
-xvar.par.path <- c("HBAbund",
+
+xvar.par.path <- c("ApisAbund",
                    "natural1000m",
                    "AbundWoodyFlowers",
                    "AbundAnnualFlowers")
@@ -50,7 +51,7 @@ apis <- par.path[par.path$Genus == "Apis",]
 apis.mods <- lapply(formulas.par.path, calcMods,
                     formula.bee, apis, site.char)
 
-#names(apis.mods) <- names(bombus.mods) <- ys
+names(apis.mods) <- names(bombus.mods) <- ys
 
 print("apis")
 lapply(apis.mods, summary)
