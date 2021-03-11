@@ -87,6 +87,8 @@ print("Pathogens Apis")
 colSums(par.path[par.path$Genus ==  "Apis", pathogens], na.rm=TRUE)/
     sum(par.path$Genus ==  "Apis" & !is.na(par.path$CBPV))
 
+
+
 ## *************************************************************
 ## fix IDs
 bees$genus_sub_sp[bees$genus_sub_sp ==
@@ -123,6 +125,28 @@ abund.SR.bees <- aggregate(list(Abund=bees$no_individuals),
 abund.SR.bees <- tapply(abund.SR.bees$Abund,
                         abund.SR.bees$Site, mean)
 
+
+## hb and bb
+
+beesHB<- subset(bees,genus=="Apis")
+abund.SR.HB <- aggregate(list(Abund=beesHB$no_individuals),
+                         list(Site=beesHB$site,
+                              SampleRound=beesHB$sample_pd),
+                         sum)
+
+abund.SR.HB <- tapply(abund.SR.HB$Abund,
+                      abund.SR.HB$Site, mean)
+
+
+beesBB<- subset(bees,genus=="Bombus")
+abund.SR.BB <- aggregate(list(Abund=beesBB$no_individuals),
+                         list(Site=beesBB$site,
+                              SampleRound=beesBB$sample_pd),
+                         sum)
+
+abund.SR.BB <- tapply(abund.SR.BB$Abund,
+                      abund.SR.BB$Site, mean)
+
 ## richness (total for a site)
 site.bees <- aggregate(list(BeeRichness=bees$genus_sub_sp),
                        list(Site=bees$site),
@@ -130,6 +154,37 @@ site.bees <- aggregate(list(BeeRichness=bees$genus_sub_sp),
 
 site.bees$BeeAbund <- abund.SR.bees[match(names(abund.SR.bees),
                                           site.bees$Site)]
+
+site.bees$HBAbund <- abund.SR.HB[match(names(abund.SR.HB),
+                                          site.bees$Site)]
+
+site.bees$BBAbund <- abund.SR.BB[match(names(abund.SR.BB),
+                                       site.bees$Site)]
+
+
+## *************************************************************
+## species accumulation curves
+library(vegan)
+
+## by site
+## make bee comm matrix, with columns = taxa, rows = site, use tapply from base r
+
+beecomm <- with(bees, tapply(no_individuals, list(site, genus_sub_sp), FUN = mean))
+beecomm[is.na(beecomm)] <- 0
+
+beeaccum <- specaccum(beecomm, method = "random", permutations = 999, conditioned =TRUE, gamma = "jack1",  w = NULL)
+
+plot(beeaccum, ci.type="poly", col="blue", lwd=2, ci.lty=0, ci.col="lightblue")
+boxplot(beeaccum, col="yellow", add=TRUE, pch="+")
+
+## species accumulation curve by sampling round?
+## make bee comm matrix, with columns = taxa, rows = sampling round, use tapply from base r
+
+beecomm2 <- with(bees, tapply(no_individuals, list(sample_pd, genus_sub_sp), FUN = mean))
+beecomm2[is.na(beecomm2)] <- 0
+beeaccum2 <- specaccum(beecomm2, method = "random", permutations = 999, conditioned =TRUE, gamma = "jack1",  w = NULL)
+plot(beeaccum2, ci.type="poly", col="blue", lwd=2, ci.lty=0, ci.col="lightblue")
+
 
 ## *************************************************************
 ## calculate site level characteristics for veg and merge with bee data

@@ -11,7 +11,7 @@ load("../data/specimens-complete.Rdata")
 ## *************************************************************
 
 ## formula for site effects on the bee community
-formula.bee <- formula(BeeRichnessArea~ natural1000m +
+formula.bee <- formula(BeeRichness~ natural1000m +
                                    WoodyFlowerDensity +
                                    AnnualFlowerDensity)
 
@@ -19,10 +19,10 @@ formula.bee <- formula(BeeRichnessArea~ natural1000m +
 
 ys <- c("AnyParasite", "ParasiteRichness", "AnyPathogen",
         "PathogenRichness")
-xvar.par.path <- c("BeeRichnessArea",
+xvar.par.path <- c("BeeRichness",
                    "natural1000m",
-                   "WoodyFlowerDensity",
-                   "AnnualFlowerDensity")
+                   "AbundWoodyFlowers",
+                   "AbundAnnualFlowers")
 
 formulas.par.path <-lapply(ys, function(x) {
     as.formula(paste(x, "~",
@@ -69,11 +69,13 @@ lapply(apis.mods, rsquared)
 ## *************************************************************
 
 library(car)
-bee.density.mod <- lm(BeeRichnessArea ~ natural1000m +
-                          WoodyFlowerDensity +
-                          AnnualFlowerDensity,
-                      data=site.char)
+#this says density, but we arent using density anymore
+bee.density.mod <- lm(BeeAbund ~ natural1000m +
+                         AbundWoodyFlowers +
+                         AbundAnnualFlowers + Size,
+                       data=site.char)
 
+AIC(bee.density.mod)
 vif(bee.density.mod)
 summary(bee.density.mod)
 plot(density(bee.density.mod$resid))

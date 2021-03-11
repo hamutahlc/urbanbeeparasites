@@ -31,3 +31,30 @@ plotCommDist(parasite.comms$dist$dist, parasite.comms$dist$sites,
 plotCommDist(pathogens.comms$dist$dist, pathogens.comms$dist$sites,
              pathogens.comms$dist$genus, "pathogen")
 
+
+
+##try combing par and path
+
+load("../data/specimens-complete.Rdata")
+
+parandpath <- c("Phorid", "Crithidia", "Apicystis","CBPV", "DWV_KV_VDV", "ABPV_KBV_IAPV",
+              "BQCV","SBPV", "SBV")
+
+GenSp <- par.path$Genus
+Sites <- par.path$Site
+
+parandpath.comms <- calcPcoa(par.path, parandpath, nperm=1000, GenSp,
+                           Sites)
+parandpath.comms$tests
+
+
+
+#$ plotting
+plotCommDist(parandpath.comms$dist$dist, parandpath.comms$dist$sites,
+             parandpath.comms$dist$genus, "parandpath")
+
+
+
+
+
+

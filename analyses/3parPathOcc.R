@@ -14,9 +14,9 @@ apis <- sick.totals[sick.totals$Genus == "Apis",]
 ## *************************************************************
 
 ## formula for site effects on the bee community
-formula.bee <- formula(BeeRichnessArea~ natural1000m +
-                                   WoodyFlowerDensity +
-                                   AnnualFlowerDensity)
+formula.bee <- formula(BeeRichness~ natural1000m +
+                         AbundWoodyFlowers +
+                         AbundAnnualFlowers + Size)
 
 ## formulas for the site effects on parasites and pathogens
 
@@ -24,10 +24,10 @@ parasites <- c("Phorid", "Crithidia", "Apicystis")
 pathogens <- c("CBPV", "DWV_KV_VDV", "ABPV_KBV_IAPV",
                "BQCV","SBPV", "SBV")
 
-xvar.par.path <- c("BeeRichnessArea",
+xvar.par.path <- c("BeeRichness",
                    "natural1000m",
-                   "WoodyFlowerDensity",
-                   "AnnualFlowerDensity")
+                   "AbundWoodyFlowers",
+                   "AbundAnnualFlowers")
 
 formulas.par <-lapply(parasites, function(x) {
     as.formula(paste(x, "~",
@@ -54,7 +54,8 @@ calcMods <- function(this.formula,
                        data = dats,
                        weights=trials,
                        family="binomial"))
-}
+print(summary(mod))
+    }
 
 ## *************************************************************
 ## bombus
