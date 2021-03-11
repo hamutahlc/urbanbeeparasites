@@ -2,6 +2,8 @@ rm(list=ls())
 ## prepares raw data and creates dataset for analyses
 
 save.dir <- "~/Dropbox/urbanbeeparasites_saved"
+## save.dir <- "/Volumes/Mac\ 2/Dropbox/urbanbeeparasites_saved"
+
 bees <- read.csv(file.path(save.dir,
                            "BeeDiversity/BeeIDs2per2015.csv"),
                  stringsAsFactors=FALSE)
@@ -117,74 +119,62 @@ bees$site[bees$site ==
 ## *************************************************************
 ## calculate site level characteristics for bees
 ## abundance (average between sample rounds)
-abund.SR.bees <- aggregate(list(Abund=bees$no_individuals),
-                           list(Site=bees$site,
-                                SampleRound=bees$sample_pd),
-                           sum)
-
-abund.SR.bees <- tapply(abund.SR.bees$Abund,
-                        abund.SR.bees$Site, mean)
 
 
-## hb and bb
+abund.SR.bees <- bees %>%
+    group_by(site, sample_pd) %>%
+    summarise(BeeAbund = sum(no_individuals),
+              BeeRichness = length(unique(genus_sub_sp)))
 
-beesHB<- subset(bees,genus=="Apis")
-abund.SR.HB <- aggregate(list(Abund=beesHB$no_individuals),
-                         list(Site=beesHB$site,
-                              SampleRound=beesHB$sample_pd),
-                         sum)
+abund.bees <- abund.SR.bees %>%
+    group_by(site) %>%
+    summarise(BeeAbund = mean(BeeAbund),
+              BeeRichness = mean(BeeRichness))
 
-abund.SR.HB <- tapply(abund.SR.HB$Abund,
-                      abund.SR.HB$Site, mean)
+abund.SR.bees.genus <- bees %>%
+    group_by(site, sample_pd, genus) %>%
+    summarise(BeeAbund = sum(no_individuals))
+
+abund.bees.genus <- abund.SR.bees.genus %>%
+    group_by(site, genus) %>%
+    summarise(BeeAbund = mean(BeeAbund))
 
 
-beesBB<- subset(bees,genus=="Bombus")
-abund.SR.BB <- aggregate(list(Abund=beesBB$no_individuals),
-                         list(Site=beesBB$site,
-                              SampleRound=beesBB$sample_pd),
-                         sum)
+abund.bees.apis <- abund.bees.genus[abund.bees.genus$genus == "Apis",]
+colnames(abund.bees.apis)[colnames(abund.bees.apis) == "BeeAbund"]  <-
+    "ApisAbund"
+abund.bees.bombus <- abund.bees.genus[abund.bees.genus$genus ==
+                                      "Bombus",]
+colnames(abund.bees.bombus)[colnames(abund.bees.bombus) == "BeeAbund"]  <-
+    "BombusAbund"
 
-abund.SR.BB <- tapply(abund.SR.BB$Abund,
-                      abund.SR.BB$Site, mean)
+abund.bees.apis$genus <- NULL
+abund.bees.bombus$genus <- NULL
 
-## richness (total for a site)
-site.bees <- aggregate(list(BeeRichness=bees$genus_sub_sp),
-                       list(Site=bees$site),
-                       function(x) length(unique(x)))
 
-site.bees$BeeAbund <- abund.SR.bees[match(names(abund.SR.bees),
-                                          site.bees$Site)]
-
-site.bees$HBAbund <- abund.SR.HB[match(names(abund.SR.HB),
-                                          site.bees$Site)]
-
-site.bees$BBAbund <- abund.SR.BB[match(names(abund.SR.BB),
-                                       site.bees$Site)]
-
+site.bees  <- abund.bees
+site.bees <- merge(site.bees, abund.bees.apis)
+site.bees <- merge(site.bees, abund.bees.bombus, all.x=TRUE)
+site.bees$BombusAbund[is.na(site.bees$BombusAbund)] <- 0
 
 ## *************************************************************
-## species accumulation curves
-library(vegan)
+## ## species accumulation curves
+## library(vegan)
 
-## by site
-## make bee comm matrix, with columns = taxa, rows = site, use tapply from base r
+## ## by site make bee comm matrix, with columns = taxa, rows = site, use
+## ## tapply from base r
 
-beecomm <- with(bees, tapply(no_individuals, list(site, genus_sub_sp), FUN = mean))
-beecomm[is.na(beecomm)] <- 0
+## beecomm <- with(bees, tapply(no_individuals,
+##                              list(site, genus_sub_sp),
+##                              FUN = mean))
+## beecomm[is.na(beecomm)] <- 0
 
-beeaccum <- specaccum(beecomm, method = "random", permutations = 999, conditioned =TRUE, gamma = "jack1",  w = NULL)
+## beeaccum <- specaccum(beecomm, method = "random",
+##                       permutations = 999, conditioned =TRUE,
+##                       gamma = "jack1",  w = NULL)
 
-plot(beeaccum, ci.type="poly", col="blue", lwd=2, ci.lty=0, ci.col="lightblue")
-boxplot(beeaccum, col="yellow", add=TRUE, pch="+")
-
-## species accumulation curve by sampling round?
-## make bee comm matrix, with columns = taxa, rows = sampling round, use tapply from base r
-
-beecomm2 <- with(bees, tapply(no_individuals, list(sample_pd, genus_sub_sp), FUN = mean))
-beecomm2[is.na(beecomm2)] <- 0
-beeaccum2 <- specaccum(beecomm2, method = "random", permutations = 999, conditioned =TRUE, gamma = "jack1",  w = NULL)
-plot(beeaccum2, ci.type="poly", col="blue", lwd=2, ci.lty=0, ci.col="lightblue")
-
+## plot(beeaccum, ci.type="poly", col="blue", lwd=2, ci.lty=0, ci.col="lightblue")
+## boxplot(beeaccum, col="yellow", add=TRUE, pch="+")
 
 ## *************************************************************
 ## calculate site level characteristics for veg and merge with bee data
@@ -262,6 +252,8 @@ sick.totals <- merge(sick.totals, site.char)
 ## write out final data
 write.csv(par.path, file=file.path(save.dir,
                                    "specimens-complete.csv"), row.names=FALSE)
+
+## save.dir.git <- "/Volumes/Mac\ 2/Dropbox/urbanbeeparasites_saved"
 
 save.dir.git <- "~/Dropbox/urbanbeeparasites/data"
 save(par.path,
