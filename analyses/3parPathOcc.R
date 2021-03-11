@@ -48,14 +48,18 @@ calcMods <- function(this.formula,
                      site.char){
     colnames(dats)[colnames(dats) == col.trials] <- "trials"
     mod = psem(
-        BeeDensity = lm(formula.bee,
-                        data = site.char),
-        ParPath = glm(this.formula,
-                       data = dats,
-                       weights=trials,
-                       family="binomial"))
-print(summary(mod))
-    }
+        BeeDensity = do.call(lm,
+                             list(formula=formula.bee,
+                                  data=site.char)),
+        ParPath = do.call(glm,
+                          list(formula=this.formula,
+                               data = dats,
+                               weights=dats$trials,
+                               family="binomial"))
+    )
+    print(summary(mod))
+    return(mod)
+}
 
 ## *************************************************************
 ## bombus

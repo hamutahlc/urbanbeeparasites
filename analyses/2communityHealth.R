@@ -12,8 +12,8 @@ load("../data/specimens-complete.Rdata")
 
 ## formula for site effects on the bee community
 formula.bee <- formula(BeeRichness~ natural1000m +
-                                   WoodyFlowerDensity +
-                                   AnnualFlowerDensity)
+                                   AbundWoodyFlowers +
+                                   AbundAnnualFlowers  + Size)
 
 ## formulas for the site effects on parasites and pathogens
 
