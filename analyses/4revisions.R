@@ -1,8 +1,10 @@
 ## *************************************************************************************
-## REV 1.5 make formulas for path analyses, with honey bee/bumble bee instead of bee richness
+## REV 1.5 make formulas for path analyses, with honey bee/bumble bee abund instead of bee richness
 ## *************************************************************************************
 ## setwd("/Volumes/Mac 2/Dropbox/urbanbeeparasites/analyses")
-## setwd("analyses")
+
+setwd("~/Dropbox/urbanbeeparasites/analyses")
+
 rm(list=ls())
 library(piecewiseSEM)
 library(lme4)
@@ -44,14 +46,16 @@ calcMods <- function(this.formula, formula.bee,
 }
 
 ## *************************************************************
-bombus <- par.path[par.path$Genus == "Bombus",]
+#dont need this one
+#bombus <- par.path[par.path$Genus == "Bombus",]
 apis <- par.path[par.path$Genus == "Apis",]
 
 ## honey bees
 apis.mods <- lapply(formulas.par.path, calcMods,
                     formula.bee, apis, site.char)
 
-names(apis.mods) <- names(bombus.mods) <- ys
+#names(apis.mods) <- names(bombus.mods) <- ys
+#names(apis.mods) <- ys
 
 print("apis")
 lapply(apis.mods, summary)
@@ -93,13 +97,14 @@ calcMods <- function(this.formula, formula.bee,
 
 ## *************************************************************
 bombus <- par.path[par.path$Genus == "Bombus",]
-apis <- par.path[par.path$Genus == "Apis",]
+#apis <- par.path[par.path$Genus == "Apis",]
 
 ## bumble bees
 bombus.mods <- lapply(formulas.par.path, calcMods,
                     formula.bee, apis, site.char)
 
 #names(apis.mods) <- names(bombus.mods) <- ys
+ names(bombus.mods) <- ys
 
 print("bombus")
 lapply(bombus.mods, summary)
