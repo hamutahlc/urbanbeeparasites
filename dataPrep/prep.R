@@ -1,5 +1,7 @@
 rm(list=ls())
 ## prepares raw data and creates dataset for analyses
+library(tidyverse)
+library(vegan)
 
 save.dir <- "~/Dropbox/urbanbeeparasites_saved"
 ## save.dir <- "/Volumes/Mac\ 2/Dropbox/urbanbeeparasites_saved"
@@ -30,33 +32,33 @@ vosPP$Species  <- "vosnesenskii"
 vosPP <- vosPP[, colnames(apisPP)]
 
 ## create a single parasite and pathogen dataset for both species
-par.path <- rbind(apisPP, vosPP)
+path.only <- rbind(apisPP, vosPP)
 
 ## fix site names to match between datasets
-par.path$Site <- as.character(par.path$Site)
-par.path$Site[par.path$Site ==
+path.only$Site <- as.character(path.only$Site)
+path.only$Site[path.only$Site ==
               "Coyote"]  <- "CoyoteCreek"
-par.path$Site[par.path$Site ==
+path.only$Site[path.only$Site ==
               "Beach"]  <- "BeachFlats"
-par.path$Site[par.path$Site ==
+path.only$Site[path.only$Site ==
               "Beach Flats"]  <- "BeachFlats"
-par.path$Site[par.path$Site ==
+path.only$Site[path.only$Site ==
               "La Colina"]  <- "LaColina"
-par.path$Site[par.path$Site ==
+path.only$Site[path.only$Site ==
               "Laguna "]  <- "LagunaSeca"
-par.path$Site[par.path$Site ==
+path.only$Site[path.only$Site ==
               "Laguna"]  <- "LagunaSeca"
-par.path$Site[par.path$Site ==
+path.only$Site[path.only$Site ==
               "Prusch"]  <- "PruschPark"
 
 ## drop all the controls
-par.path <- par.path[!par.path$Site == "Control",]
+path.only <- path.only[!path.only$Site == "Control",]
 
 ## i think judt want to make a separate parasite datasheet to use with the parasite data, 
 ## since the way the screenign occured is that a subset of bees sampled for parasites were sampled for pathogens
-## par.path.either <- par.path[!is.na(par.path$B.actin) | !is.na(par.path$Phorid),]
+## path.only.either <- path.only[!is.na(path.only$B.actin) | !is.na(path.only$Phorid),]
 
-par.only <- par.path
+par.only <- path.only
 par.only$CBPV <- NULL
 par.only$DWV_KV_VDV <- NULL
 par.only$ABPV_KBV_IAPV <- NULL
@@ -65,20 +67,26 @@ par.only$SBPV <- NULL
 par.only$SBV <- NULL
 par.only$B.actin <- NULL
 
-## par.path has only samples screened for every single par/path, 
-par.path <- par.path[!is.na(par.path$B.actin),]
-par.path <- par.path[!is.na(par.path$Phorid),]
-par.path <- par.path[!is.na(par.path$Crithidia),]
-par.path <- par.path[!is.na(par.path$Apicystis),]
-par.path <- par.path[!is.na(par.path$CBPV),]
-par.path <- par.path[!is.na(par.path$DWV_KV_VDV),]
-par.path <- par.path[!is.na(par.path$ABPV_KBV_IAPV),]
-par.path <- par.path[!is.na(par.path$BQCV),]
-par.path <- par.path[!is.na(par.path$SBPV),]
-par.path <- par.path[!is.na(par.path$SBV),]
+path.only$Phorid <- NULL
+path.only$Crithidia <- NULL
+path.only$Apicystis <- NULL
+
+## make sure each datafram has samples screened for every single par/path, 
+path.only <- path.only[!is.na(path.only$B.actin),]
+path.only <- path.only[!is.na(path.only$CBPV),]
+path.only <- path.only[!is.na(path.only$DWV_KV_VDV),]
+path.only <- path.only[!is.na(path.only$ABPV_KBV_IAPV),]
+path.only <- path.only[!is.na(path.only$BQCV),]
+path.only <- path.only[!is.na(path.only$SBPV),]
+path.only <- path.only[!is.na(path.only$SBV),]
+
+par.only <- par.only[!is.na(par.only$Phorid),]
+par.only <- par.only[!is.na(par.only$Crithidia),]
+par.only <- par.only[!is.na(par.only$Apicystis),]
+
 
 ## drop B.actin equals zero, i.e. 
-par.path <- par.path[!par.path$B.actin == 0,]
+path.only <- path.only[!path.only$B.actin == 0,]
 
 ## community health metrics
 parasites <- c("Phorid", "Crithidia", "Apicystis")
@@ -89,9 +97,16 @@ par.only$ParasiteRichness <- rowSums(par.only[,parasites],na.rm=TRUE)
 par.only$PossibleParasite <- apply(par.only[,parasites],1,function(x) sum(!is.na(x)))
 par.only$AnyParasite <- (par.only$ParasiteRichness > 0)*1
 
-par.path$PathogenRichness <- rowSums(par.path[,pathogens],na.rm=TRUE)
-par.path$PossiblePathogen <- apply(par.path[,pathogens],1,function(x) sum(!is.na(x)))
-par.path$AnyPathogen <- (par.path$PathogenRichness > 0)*1
+path.only$PathogenRichness <- rowSums(path.only[,pathogens],na.rm=TRUE)
+path.only$PossiblePathogen <- apply(path.only[,pathogens],1,function(x) sum(!is.na(x)))
+path.only$AnyPathogen <- (path.only$PathogenRichness > 0)*1
+
+#potentially useful variable
+par.only$ParasiteRichnessRate <- par.only$ParasiteRichness/par.only$PossibleParasite
+path.only$PathogenRichnessRate <- path.only$PathogenRichness/path.only$PossiblePathogen
+
+
+
 
 ## *************************************************************
 print("Bombus parasite richness")
@@ -108,24 +123,24 @@ print("Parasites Apis")
 colSums(par.only[par.only$Genus ==  "Apis", parasites])/
     sum(par.only$Genus ==  "Apis")
 
-par.path$PathogenRichness <- rowSums(par.path[, pathogens])
-par.path$AnyPathogen <- (par.path$PathogenRichness > 0)*1
+path.only$PathogenRichness <- rowSums(path.only[, pathogens])
+path.only$AnyPathogen <- (path.only$PathogenRichness > 0)*1
 
 print("Bombus pathogen richness")
-table(par.path$PathogenRichness[par.path$Genus == "Bombus"])/
-    nrow(par.path[par.path$Genus == "Bombus",])
+table(path.only$PathogenRichness[path.only$Genus == "Bombus"])/
+    nrow(path.only[path.only$Genus == "Bombus",])
 
 print("Apis pathogen richness")
-table(par.path$PathogenRichness[par.path$Genus == "Apis"])/
-    nrow(par.path[par.path$Genus == "Apis",])
+table(path.only$PathogenRichness[path.only$Genus == "Apis"])/
+    nrow(path.only[path.only$Genus == "Apis",])
 
 print("Pathogens Bombus")
-colSums(par.path[par.path$Genus ==  "Bombus", pathogens], na.rm=TRUE)/
-    sum(par.path$Genus ==  "Bombus" & !is.na(par.path$CBPV))
+colSums(path.only[path.only$Genus ==  "Bombus", pathogens], na.rm=TRUE)/
+    sum(path.only$Genus ==  "Bombus" & !is.na(path.only$CBPV))
 
 print("Pathogens Apis")
-colSums(par.path[par.path$Genus ==  "Apis", pathogens], na.rm=TRUE)/
-    sum(par.path$Genus ==  "Apis" & !is.na(par.path$CBPV))
+colSums(path.only[path.only$Genus ==  "Apis", pathogens], na.rm=TRUE)/
+    sum(path.only$Genus ==  "Apis" & !is.na(path.only$CBPV))
 
 
 ## *************************************************************
@@ -161,12 +176,14 @@ bees$site[bees$site ==
 abund.SR.bees <- bees %>%
     group_by(site, sample_pd) %>%
     summarise(BeeAbund = sum(no_individuals),
-              BeeRichness = length(unique(genus_sub_sp)))
+              BeeRichness = length(unique(genus_sub_sp)),
+              BeeDiversity = diversity(table(genus_sub_sp)))
 
 abund.bees <- abund.SR.bees %>%
     group_by(site) %>%
     summarise(BeeAbund = mean(BeeAbund),
-              BeeRichness = mean(BeeRichness))
+              BeeRichness = mean(BeeRichness),
+              BeeDiversity = mean(BeeDiversity))
 
 abund.SR.bees.genus <- bees %>%
     group_by(site, sample_pd, genus) %>%
@@ -212,23 +229,17 @@ veg.site <- aggregate(list(AbundWoodyFlowers=veg$NoTreeShrubsFlower,
 
 site.char <- merge(veg.site, site.bees)
 
-## I TOOK THESE AND ADDED TO THE ABOVE...
-
-## site.char <- merge(site.char,
- #                  unique(veg[, c("Site", "Size", "natural1000m",
-   #                               "natural2000m")]))
-
 
 ## *************************************************************
-## calculate densities to control for garden size
+## calculate densities to control for garden size (removed from analyses upon reviews)
 
-site.char$BeeDensity <- site.char$BeeAbund/site.char$Size
-site.char$BeeRichnessArea <- site.char$BeeRichness/site.char$Size
-
-site.char$WoodyFlowerDensity <- site.char$AbundWoodyFlowers/site.char$Size
-site.char$AnnualFlowerDensity <-
-    site.char$AbundAnnualFlowers/site.char$Size
-site.char$PlantRichnessArea <- site.char$PlantRichness/site.char$Size
+# site.char$BeeDensity <- site.char$BeeAbund/site.char$Size
+# site.char$BeeRichnessArea <- site.char$BeeRichness/site.char$Size
+# 
+# site.char$WoodyFlowerDensity <- site.char$AbundWoodyFlowers/site.char$Size
+# site.char$AnnualFlowerDensity <-
+#     site.char$AbundAnnualFlowers/site.char$Size
+# site.char$PlantRichnessArea <- site.char$PlantRichness/site.char$Size
 
 ## *************************************************************
 ## calculate total sick individuals for each site with parasites, bad thing
@@ -251,14 +262,14 @@ par.totals[,parasites] <-
 
 ##  calculate total sick individuals for each site with pathogens, bad thing
 
-sick.totals <- aggregate(par.path[c(pathogens)],
-                         list(Site=par.path$Site,
-                              Genus=par.path$Genus),
+sick.totals <- aggregate(path.only[c(pathogens)],
+                         list(Site=path.only$Site,
+                              Genus=path.only$Genus),
                          sum, na.rm=TRUE)
 
-tested.totals <- aggregate(par.path[c(pathogens)],
-                           list(Site=par.path$Site,
-                                Genus=par.path$Genus),
+tested.totals <- aggregate(path.only[c(pathogens)],
+                           list(Site=path.only$Site,
+                                Genus=path.only$Genus),
                            function(x) sum(!is.na(x)))
 
 sick.totals$ScreenedPath <- tested.totals$CBPV
@@ -266,6 +277,7 @@ sick.totals$ScreenedPath <- tested.totals$CBPV
 
 sick.totals[,pathogens] <-
   sick.totals[,pathogens]/sick.totals$ScreenedPath
+
 
 
 ## *************************************************************
@@ -297,17 +309,17 @@ sick.totals[,pathogens] <-
 ## merge parasite and pathogen and site data into specimens.complete
 
 ## merge pathogen and site data first
-par.path$Site[!par.path$Site %in% site.char$Site]
+path.only$Site[!path.only$Site %in% site.char$Site]
 
-dim(par.path)
-par.path$Date <- NULL
-dim(par.path)
+dim(path.only)
+path.only$Date <- NULL
+dim(path.only)
 
 ## need to change "site" to "Site" in site.char
 colnames(site.char)[colnames(site.char) == 'site'] <- 'Site'
 
-par.path <- merge(par.path, site.char)
-dim(par.path)
+path.only <- merge(path.only, site.char)
+dim(path.only)
 
 ## merge parasite and site data 
 par.only$Site[!par.only$Site %in% site.char$Site]
@@ -320,7 +332,7 @@ dim(par.only)
 sick.totals <- merge(sick.totals, site.char)
 
 ## write out pathogen data
-write.csv(par.path, file=file.path(save.dir,
+write.csv(path.only, file=file.path(save.dir,
                                    "specimens-completePathogen.csv"), row.names=FALSE)
 ## write out parasite data
 write.csv(par.only, file=file.path(save.dir,
@@ -329,7 +341,7 @@ write.csv(par.only, file=file.path(save.dir,
 ## save.dir.git <- "/Volumes/Mac\ 2/Dropbox/urbanbeeparasites/data"
 
 save.dir.git <- "~/Dropbox/urbanbeeparasites/data"
-save(par.path, par.only,
+save(path.only, par.only,
      site.char, sick.totals,
      file=file.path(save.dir.git, "specimens-complete.Rdata"))
 
@@ -374,3 +386,51 @@ save(par.path, par.only,
 ## plot(beeaccum, ci.type="poly", col="blue", lwd=2, ci.lty=0, ci.col="lightblue")
 ## boxplot(beeaccum, col="yellow", add=TRUE, pch="+")
 
+
+## *************************************************************
+## are par and path in apis related to par and path in bombus
+## *************************************************************
+
+# bombusPath <- path.only[path.only$Genus == "Bombus",]
+# apisPath <- path.only[path.only$Genus == "Apis",]
+# 
+# bombusPara <- par.only[par.only$Genus == "Bombus",]
+# apisPara <- par.only[par.only$Genus == "Apis",]
+# 
+# 
+# bombusPath.site <- aggregate(list(bombusPathRichness=bombusPath$PathogenRichness,
+#                                  bombusAnyPathgen=bombusPath$AnyPathogen),
+#                       list(site=bombusPath$Site),
+#                       mean)
+# 
+# bombusPara.site <- aggregate(list(bombusParRichness=bombusPara$ParasiteRichness,
+#                                  bombusAnyParasite=bombusPara$AnyParasite),
+#                             list(site=bombusPara$Site),
+#                             mean)
+# 
+# apisPath.site <- aggregate(list( apisPathRichness=apisPath$PathogenRichness,
+#                                   apisAnyPathgen=apisPath$AnyPathogen),
+#                              list(site=apisPath$Site),
+#                              mean)
+# 
+# apisPara.site <- aggregate(list( apisParRichness=apisPara$ParasiteRichness,
+#                                   apisAnyParasite=apisPara$AnyParasite),
+#                              list(site=apisPara$Site),
+#                              mean)
+# 
+# apisPath.site <- apisPath.site[-c(14), ] 
+# apisPara.site <- apisPara.site[-c(14), ] 
+# 
+# PathogenLM <- lm(bombusPath.site$bombusPathRichness ~ apisPath.site$apisPathRichness)
+# summary(PathogenLM)
+# 
+# ParasiteLM <- lm(bombusPara.site$bombusParRichness ~ apisPara.site$apisParRichness)
+# summary(ParasiteLM)
+# 
+# PathogenLM2 <- lm(bombusPath.site$bombusAnyPathgen ~ apisPath.site$apisAnyPathgen)
+# summary(PathogenLM2)
+# 
+# ParasiteLM2 <- lm(bombusPara.site$bombusAnyParasite ~ apisPara.site$apisAnyParasite)
+# summary(ParasiteLM2)
+# 
+# 
