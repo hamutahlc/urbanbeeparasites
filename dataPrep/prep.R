@@ -278,6 +278,49 @@ sick.totals$ScreenedPath <- tested.totals$CBPV
 sick.totals[,pathogens] <-
   sick.totals[,pathogens]/sick.totals$ScreenedPath
 
+## *************************************************************
+## calculate parasite/pathogen rates in apis and parsaite/pathogen rates in bombus
+
+par.rates <- par.only %>%
+  group_by(Site, Genus) %>%
+  summarise(par.rates = mean(AnyParasite))
+
+path.rates <- path.only %>%
+  group_by(Site, Genus) %>%
+  summarise(path.rates = mean(AnyPathogen))
+
+names(par.rates)[names(par.rates) == "Site"] <- "site"
+names(path.rates)[names(path.rates) == "Site"] <- "site"
+
+
+apis.par.rate <- par.rates[par.rates$Genus == "Apis",]
+bombus.par.rate <- par.rates[par.rates$Genus == "Bombus",]
+apis.path.rate <- path.rates[path.rates$Genus == "Apis",]
+bombus.path.rate <- path.rates[path.rates$Genus == "Bombus",]
+
+colnames(apis.par.rate)[colnames(apis.par.rate) == "par.rates"]  <-
+  "apis.par.rate"
+colnames(bombus.par.rate)[colnames(bombus.par.rate) == "par.rates"]  <-
+  "bombus.par.rate"
+colnames(apis.path.rate)[colnames(apis.path.rate) == "path.rates"]  <-
+  "apis.path.rate"
+colnames(bombus.path.rate)[colnames(bombus.path.rate) == "path.rates"]  <-
+  "bombus.path.rate"
+
+apis.par.rate$Genus <- NULL
+bombus.par.rate$Genus <- NULL
+apis.path.rate$Genus <- NULL
+bombus.path.rate$Genus <- NULL
+
+site.char <- merge(site.char, apis.par.rate,  all.x=TRUE)
+site.char <- merge(site.char, bombus.par.rate,  all.x=TRUE)
+site.char <- merge(site.char, apis.path.rate,  all.x=TRUE)
+site.char <- merge(site.char, bombus.path.rate,  all.x=TRUE)
+
+site.char$apis.par.rate[is.na(site.char$apis.par.rate)] <- 0
+site.char$bombus.par.rate[is.na(site.char$bombus.par.rate)] <- 0
+site.char$apis.path.rate[is.na(site.char$apis.path.rate)] <- 0
+site.char$bombus.path.rate[is.na(site.char$bombus.path.rate)] <- 0
 
 
 ## *************************************************************
