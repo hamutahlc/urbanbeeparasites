@@ -17,7 +17,7 @@ formula.bee <- formula(ApisAbund~ natural1000m +
                          AbundWoodyFlowers +
                          AbundAnnualFlowers)
 
-ys <- c("AnyParasite", "ParasiteRichness", "AnyPathogen",
+ys <- c( "ParasiteRichness", 
         "PathogenRichness")
 
 xvar.par.path <- c("ApisAbund",
@@ -35,14 +35,24 @@ formulas.par.path <-lapply(ys, function(x) {
 
 ## *************************************************************
 
-calcMods <- function(this.formula, formula.bee,
+calcMods <- function(this.formula,
+                     formula.bee,
+                     col.trials,
                      dats,
                      site.char){
+  colnames(dats)[colnames(dats) == col.trials] <- "trials"
   mod = psem(
-    BeeDensity = lm(formula.bee,
-                    data = site.char),
-    ParPath = lmer(this.formula,
-                   data = dats))
+    BeeDensity = do.call(lm,
+                         list(formula=formula.bee,
+                              data=site.char)),
+    ParPath = do.call(glm,
+                      list(formula=this.formula,
+                           data = dats,
+                           weights=dats$trials,
+                           family="binomial"))
+  )
+  print(summary(mod))
+  return(mod)
 }
 
 ## *************************************************************
@@ -51,11 +61,17 @@ calcMods <- function(this.formula, formula.bee,
 apis <- par.path[par.path$Genus == "Apis",]
 
 ## honey bees
+lapply(formulas.par, calcMods,
+       formula.bee=formula.bee,
+       col.trials= "ScreenedPar",
+       dats=apis,
+       site.char=site.char)
+
 apis.mods <- lapply(formulas.par.path, calcMods,
                     formula.bee, apis, site.char)
 
-#names(apis.mods) <- names(bombus.mods) <- ys
-#names(apis.mods) <- ys
+names(apis.mods) <- ys
+
 
 print("apis")
 lapply(apis.mods, summary)
