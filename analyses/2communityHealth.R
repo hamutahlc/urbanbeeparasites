@@ -190,17 +190,20 @@ return beta_binomial_rng(T, mu * phi, (1 - mu) * phi);
 "
 stanvars <- stanvar(scode = stan_funs, block = "functions")
 
-bf.parRich.apis <- bf(formulas.par.apis1[[1]],  family = beta_binomial2, stanvars=stanvars)
+# bf.parRich.apis <- bf(formulas.par.apis1[[1]],  family = beta_binomial2, stanvars=stanvars)
+
+# i cant get this work, so for now using binomial
+
+bf.parRich.apis <- bf(formulas.par.apis1[[1]],  family = binomial)
 bf.parAny.apis <- bf(formulas.par.apis1[[2]],  family="bernoulli")
 
-bf.pathRich.apis <- bf(formulas.par.apis2[[1]],  family = beta_binomial2)
+bf.pathRich.apis <- bf(formulas.par.apis2[[1]],  family = binomial)
 bf.pathAny.apis <- bf(formulas.par.apis2[[2]],  family="bernoulli")
 
-
-bf.parRich.bombus <- bf(formulas.par.bombus1[[1]],  family = beta_binomial2)
+bf.parRich.bombus <- bf(formulas.par.bombus1[[1]],  family = binomial)
 bf.parAny.bombus <- bf(formulas.par.bombus1[[2]],  family="bernoulli")
 
-bf.pathRich.bombus <- bf(formulas.par.bombus2[[1]],  family = beta_binomial2)
+bf.pathRich.bombus <- bf(formulas.par.bombus2[[1]],  family = binomial)
 bf.pathAny.bombus <- bf(formulas.par.bombus2[[2]],  family="bernoulli")
 
 
@@ -359,29 +362,21 @@ summary(fit.pathAny.bombus)
 # bombus pathogen rate impacted by: 
 
 
-###******************* EXPORT results as tables  *******************
 
 
-
-# results: 
-summary(fit.parRich.apis)
-summary(fit.parAny.apis)
-summary(fit.pathRich.apis)
-summary(fit.pathAny.apis)
-summary(fit.parRich.bombus)
-summary(fit.parAny.bombus)
-summary(fit.pathRich.bombus)
-summary(fit.pathAny.bombus)
 
 
 # to do: 
 # show LCP the conceptual figure
+# do this with parasite and pathogen specific models
 # run all these models, output them in a nice csv or smething easy to read
 # make conceptual figures of them and a table - which goes into the ms? 
 # how do i report statistics to evaluate model fit? d-test shows if we could improve models with exclusion of hypothesized paths
   #or inclusion of non hypothesized paths. 
+  #waic - google brms model fit and they might have good options. can't do d-test with the baysian approach 
   
-# make scatterplots/effect plots of major findings
+# make scatterplots/effect plots of major findings. look at bee microbiome and see how made plot. use ggplot2. 
+# hard to plot binomial data
 
 # rerun with honey bee abund or with bumble bee abund instead of bee diversity or bee abund. 
     # how do i evaluate which model is better?
