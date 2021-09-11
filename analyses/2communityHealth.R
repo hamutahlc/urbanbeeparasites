@@ -2,18 +2,20 @@ setwd("~/Dropbox/urbanbeeparasites")
 setwd("analyses")
 rm(list=ls())
 source("src/writeResultsTables.R")
+source("src/init_bayes.R")
 library(piecewiseSEM)
 library(lme4)
 
 # brms for bayseian regression models 
-# install.packages("R2admb")
-# install.packages("glmmADMB", 
-#                  repos=c("http://glmmadmb.r-forge.r-project.org/repos",
-#                          getOption("repos")),
-#                  type="source")
+install.packages("R2admb")
+install.packages("glmmADMB",
+                 repos=c("http://glmmadmb.r-forge.r-project.org/repos",
+                         getOption("repos")),
+                 type="source")
 library(brms)
 
 load("../data/specimens-complete.Rdata")
+#load("~/Dropbox/urbanbeeparasites/data/CommunityHealthresults.Rdata")
 
 ## *************************************************************
 ## make formulas for path analyses
@@ -21,7 +23,6 @@ load("../data/specimens-complete.Rdata")
 ## pearsons correlation test to confirm that variables of interst in our models not collinear 
 cor.test(site.char$BeeDiversity, site.char$BeeAbund, method=c("pearson"))
 cor.test(site.char$BeeRichness, site.char$BeeAbund, method=c("pearson"))
-
 
 # par.only and path.only are individual-level specimen data, site.char is site-level summary data
 # we are trying to put everythign in one dataset since it needs to be together for the psem
@@ -43,17 +44,19 @@ makeDataMultiLevel <- function(indiv.data){
 
 par.only <- par.only[order(par.only$Site),]
 path.only <- path.only[order(path.only$Site),]
-
+par.and.path <- par.and.path [order(par.and.path $Site),]
+  
 path.only <- makeDataMultiLevel(path.only)
 par.only <- makeDataMultiLevel(par.only)
+par.and.path <- makeDataMultiLevel(par.and.path)
 
 
 ## formula for site effects on the bee community
 ## because we use the weights, we use site characterstic data from one site data point 
 
-formula.bee.rich <- formula(BeeRichness| weights(Weights)~ natural1000m +
-                                   AbundWoodyFlowers +
-                                   AbundAnnualFlowers  + Size)
+# formula.bee.rich <- formula(BeeRichness| weights(Weights)~ natural1000m +
+#                                    AbundWoodyFlowers +
+#                                    AbundAnnualFlowers  + Size)
 
 formula.bee.abund <- formula(BeeAbund| weights(Weights)~ natural1000m +
                          AbundWoodyFlowers +
@@ -86,6 +89,12 @@ xvar.path.apis <- c(all.indiv.vars,
 xvar.path.bombus <- c(all.indiv.vars,
                     "apis.path.rate")
 
+xvar.par.path.apis <- c(all.indiv.vars,
+                        "bombus.parpath.rate")
+
+xvar.par.path.bombus <- c(all.indiv.vars,
+                          "apis.parpath.rate")
+
 # scale x variables
 
 par.only[, c(all.indiv.vars, "apis.par.rate", "bombus.par.rate" )] <-
@@ -94,30 +103,23 @@ par.only[, c(all.indiv.vars, "apis.par.rate", "bombus.par.rate" )] <-
 path.only[, c(all.indiv.vars, "apis.path.rate", "bombus.path.rate" )] <-
   apply(path.only[, c(all.indiv.vars, "apis.path.rate", "bombus.path.rate" )], 2, scale)
 
+par.and.path[, c(all.indiv.vars, "apis.parpath.rate", "bombus.parpath.rate" )] <-
+  apply(par.and.path[, c(all.indiv.vars, "apis.parpath.rate", "bombus.parpath.rate" )], 2, scale)
+
 # define y variables. 
 
-# ys1 <- c("ParasiteRichness",
-#          "PathogenRichness")
-# 
-# ys2 <- c("AnyParasite", "AnyPathogen")
 
-ys1 <- c("ParasiteRichness",
-         "AnyParasite")
+ys1 <- c("ParasiteRichness", "AnyParasite")
 
 ys2 <- c("PathogenRichness", "AnyPathogen")
+
+ys3 <- c("ParPathRichness", "AnyParPath")
 
 # make formulas
 
 
-# formulas.par.path1 <-lapply(ys1, function(x) {
-#     as.formula(paste(x, "~",
-#                      paste(paste(xvar.par.path, collapse="+"),
-#                            "(1|Site)",
-#                            sep="+")))
-# })
-
 #apis parasites
-formulas.par.apis1 <-lapply(ys1, function(x) {
+formulas.par.apis <-lapply(ys1, function(x) {
   as.formula(paste(x, "~",
                    paste(paste(xvar.par.apis, collapse="+"),
                          "(1|Site)",
@@ -125,7 +127,7 @@ formulas.par.apis1 <-lapply(ys1, function(x) {
 })
 
 #apis pathogen
-formulas.par.apis2 <-lapply(ys2, function(x) {
+formulas.path.apis <-lapply(ys2, function(x) {
   as.formula(paste(x, "~",
                    paste(paste(xvar.path.apis, collapse="+"),
                          "(1|Site)",
@@ -134,7 +136,7 @@ formulas.par.apis2 <-lapply(ys2, function(x) {
 
 
 #bombus parasites
-formulas.par.bombus1 <-lapply(ys1, function(x) {
+formulas.par.bombus <-lapply(ys1, function(x) {
   as.formula(paste(x, "~",
                    paste(paste(xvar.par.bombus, collapse="+"),
                          "(1|Site)",
@@ -142,7 +144,7 @@ formulas.par.bombus1 <-lapply(ys1, function(x) {
 })
 
 #bombus pathogen
-formulas.par.bombus2 <-lapply(ys2, function(x) {
+formulas.path.bombus <-lapply(ys2, function(x) {
   as.formula(paste(x, "~",
                    paste(paste(xvar.path.bombus, collapse="+"),
                          "(1|Site)",
@@ -150,9 +152,25 @@ formulas.par.bombus2 <-lapply(ys2, function(x) {
 })
 
 
+# apis parpath
+formulas.parpath.apis <-lapply(ys3, function(x) {
+  as.formula(paste(x, "~",
+                   paste(paste(xvar.par.path.apis, collapse="+"),
+                         "(1|Site)",
+                         sep="+")))
+})
+
+# bombus parpath
+formulas.parpath.bombus <-lapply(ys3, function(x) {
+  as.formula(paste(x, "~",
+                   paste(paste(xvar.par.path.bombus, collapse="+"),
+                         "(1|Site)",
+                         sep="+")))
+})
 
 ## *************************************************************
 ## psem 
+## *************************************************************
 
 # split apis and bombus data
 bombusPath <- path.only[path.only$Genus == "Bombus",]
@@ -161,11 +179,14 @@ apisPath <- path.only[path.only$Genus == "Apis",]
 bombusPara <- par.only[par.only$Genus == "Bombus",]
 apisPara <- par.only[par.only$Genus == "Apis",]
 
+bombusParaPath <- par.and.path[par.and.path$Genus == "Bombus",]
+apisParaPath <- par.and.path[par.and.path$Genus == "Apis",]
+
 
 # models for site effects on community, make compatible with bayesian analyses
 bf.bee.abund <- bf(formula.bee.abund)
 bf.bee.div <- bf(formula.bee.div)
-bf.bee.rich <- bf(formula.bee.rich)
+# bf.bee.rich <- bf(formula.bee.rich)
 
 
 #models for parasites and pathogens, make compatible with baysian analyses
@@ -174,43 +195,44 @@ bf.bee.rich <- bf(formula.bee.rich)
 # family is beta binomial. wiht binomial, there is one probability. estimating prob of sucess. since prob varies between parasites
 # so use beta binmoial sine probability of sucess varies between trials
 
-beta_binomial2 <- custom_family(
-  "beta_binomial2", dpars = c("mu", "phi"),
-  links = c("logit", "log"), lb = c(NA, 0),
-  type = "int", vars = "vint1[n]"
-)
-
-stan_funs <- "
-  real beta_binomial2_lpmf(int y, real mu, real phi, int T) {
-return beta_binomial_lpmf(y | T, mu * phi, (1 - mu) * phi);
-}
-int beta_binomial2_rng(real mu, real phi, int T) {
-return beta_binomial_rng(T, mu * phi, (1 - mu) * phi);
-}
-"
-stanvars <- stanvar(scode = stan_funs, block = "functions")
+# beta_binomial2 <- custom_family(
+#   "beta_binomial2", dpars = c("mu", "phi"),
+#   links = c("logit", "log"), lb = c(NA, 0),
+#   type = "int", vars = "vint1[n]"
+# )
+# 
+# stan_funs <- "
+#   real beta_binomial2_lpmf(int y, real mu, real phi, int T) {
+# return beta_binomial_lpmf(y | T, mu * phi, (1 - mu) * phi);
+# }
+# int beta_binomial2_rng(real mu, real phi, int T) {
+# return beta_binomial_rng(T, mu * phi, (1 - mu) * phi);
+# }
+# "
+# stanvars <- stanvar(scode = stan_funs, block = "functions")
 
 # bf.parRich.apis <- bf(formulas.par.apis1[[1]],  family = beta_binomial2, stanvars=stanvars)
 
-# i cant get this work, so for now using binomial
+# i cant get this work, so for now using
 
-bf.parRich.apis <- bf(formulas.par.apis1[[1]],  family = binomial)
-bf.parAny.apis <- bf(formulas.par.apis1[[2]],  family="bernoulli")
+bf.parRich.apis <- bf(formulas.par.apis[[1]],  family = binomial)
+bf.parAny.apis <- bf(formulas.par.apis[[2]],  family="bernoulli")
 
-bf.pathRich.apis <- bf(formulas.par.apis2[[1]],  family = binomial)
-bf.pathAny.apis <- bf(formulas.par.apis2[[2]],  family="bernoulli")
+bf.pathRich.apis <- bf(formulas.path.apis[[1]],  family = binomial)
+bf.pathAny.apis <- bf(formulas.path.apis[[2]],  family="bernoulli")
 
-bf.parRich.bombus <- bf(formulas.par.bombus1[[1]],  family = binomial)
-bf.parAny.bombus <- bf(formulas.par.bombus1[[2]],  family="bernoulli")
+bf.parRich.bombus <- bf(formulas.par.bombus[[1]],  family = binomial)
+bf.parAny.bombus <- bf(formulas.par.bombus[[2]],  family="bernoulli")
 
-bf.pathRich.bombus <- bf(formulas.par.bombus2[[1]],  family = binomial)
-bf.pathAny.bombus <- bf(formulas.par.bombus2[[2]],  family="bernoulli")
+bf.pathRich.bombus <- bf(formulas.path.bombus[[1]],  family = binomial)
+bf.pathAny.bombus <- bf(formulas.path.bombus[[2]],  family="bernoulli")
+
+# for par and path models im skipping "any" since they mostly all have at least 1 
+bf.parpathRich.apis <- bf(formulas.parpath.apis[[1]],  family = binomial)
+bf.parpathRich.bombus <- bf(formulas.parpath.bombus[[1]],  family = binomial)
 
 
 ## PSEMS HONEY BEES: Parasite rich, Any parasite, Pathogen Richen, Any Pathogen
-
-# 
-
 
 # apis with parasite richness, bayesian
 bform.parRich.apis <- bf.bee.abund + bf.bee.div + bf.parRich.apis + 
@@ -222,7 +244,6 @@ fit.parRich.apis <- brm(bform.parRich.apis, apisPara,
            chains = 3,
            control = list(adapt_delta = 0.99))
            
-
 summary(fit.parRich.apis)
 
 write.ms.table(fit.parRich.apis, "parRichnessApis")
@@ -230,6 +251,7 @@ write.ms.table(fit.parRich.apis, "parRichnessApis")
 # then look at confidence interval. if centered right at 0, not sig
 # bigger gardens marginally -> bee diversity, nat habitat -> bee abund
 # apis parasite richenss impacted by: nothing
+# ran it
 
 
 #apis with any parasite, bayesian
@@ -244,18 +266,15 @@ fit.parAny.apis <- brm(bform.parAny.apis, apisPara,
 
 
 summary(fit.parAny.apis)
-# look at rhat. should be around 1. indicates convergence
-# then look at confidence interval. if centered right at 0, not sig
-# bigger gardens -> bee diversity, nat habitat -> bee abund
-# apis parasite rate impacted by: nothing
+write.ms.table(fit.parAny.apis, "parAnyApis")
+# ran it
 
 
-## work on this one now
 #apis with pathogen richness, bayesian
 bform.pathRich.apis <- bf.bee.abund + bf.bee.div + bf.pathRich.apis + 
   set_rescor(FALSE)
 
-fit.pathRich.apis <- brm(bform.pathRich.apis, apisPara,
+fit.pathRich.apis <- brm(bform.pathRich.apis, apisPath,
                         cores=1,
                         iter = 10^4,
                         chains = 3,
@@ -263,17 +282,15 @@ fit.pathRich.apis <- brm(bform.pathRich.apis, apisPara,
 
 
 summary(fit.pathRich.apis)
-# look at rhat. should be around 1. indicates convergence
-# then look at confidence interval. if centered right at 0, not sig
-# bigger gardens -> bee diversity, nat habitat -> bee abund
-# apis pathogen richenss impacted by: 
+write.ms.table(fit.pathRich.apis, "pathRichnessApis")
+# ran it
 
 
 #apis with any pathogen, bayesian
 bform.pathAny.apis <- bf.bee.abund + bf.bee.div + bf.pathAny.apis + 
   set_rescor(FALSE)
 
-fit.pathAny.apis <- brm(bform.pathAny.apis, apisPara,
+fit.pathAny.apis <- brm(bform.pathAny.apis, apisPath,
                        cores=1,
                        iter = 10^4,
                        chains = 3,
@@ -281,10 +298,8 @@ fit.pathAny.apis <- brm(bform.pathAny.apis, apisPara,
 
 
 summary(fit.pathAny.apis)
-# look at rhat. should be around 1. indicates convergence
-# then look at confidence interval. if centered right at 0, not sig
-# bigger gardens -> bee diversity, nat habitat -> bee abund
-# apis pathogen rate impacted by: 
+write.ms.table(fit.pathAny.apis, "pathAnyApis")
+# ran it
 
 
 ## BOMBUS: Parasite rich, Any parasite, Pathogen Richen, Any Pathogen
@@ -293,206 +308,272 @@ summary(fit.pathAny.apis)
 bform.parRich.bombus <- bf.bee.abund + bf.bee.div + bf.parRich.bombus + 
   set_rescor(FALSE)
 
+prior <- c(set_prior("normal(0,1)", class="b"))
 fit.parRich.bombus <- brm(bform.parRich.bombus, bombusPara,
                         cores=1,
-                        iter = 10^4,
-                        chains = 3,
+                        iter = 10^5,
+                        chains = 4,
+                        prior=prior,
                         control = list(adapt_delta = 0.99))
 
-
 summary(fit.parRich.bombus)
-# look at rhat. should be around 1. indicates convergence
-# then look at confidence interval. if centered right at 0, not sig
-# bigger gardens -> bee diversity, nat habitat -> bee abund
-# bombus parasite richenss impacted by: 
 
+write.ms.table(fit.parRich.bombus, "parRichnessBombus")
+# ran it
 
 #bombus with any parasite, bayesian
 bform.parAny.bombus <- bf.bee.abund + bf.bee.div + bf.parAny.bombus + 
   set_rescor(FALSE)
 
+prior <- c(set_prior("normal(0,1)", class="b"))
 fit.parAny.bombus <- brm(bform.parAny.bombus, bombusPara,
                        cores=1,
-                       iter = 10^4,
-                       chains = 3,
+                       iter = 10^5,
+                       chains = 4,
+                       prior=prior,
                        control = list(adapt_delta = 0.99))
 
 
 summary(fit.parAny.bombus)
-# look at rhat. should be around 1. indicates convergence
-# then look at confidence interval. if centered right at 0, not sig
-# bigger gardens -> bee diversity, nat habitat -> bee abund
-# apis parasite rate impacted by: 
+write.ms.table(fit.parAny.bombus, "parAnyBombus4")
+# ran it
 
 
-
-#apis with pathogen richness, bayesian
+#bombus with pathogen richness, bayesian
 bform.pathRich.bombus <- bf.bee.abund + bf.bee.div + bf.pathRich.bombus + 
   set_rescor(FALSE)
 
-fit.pathRich.bombus <- brm(bform.pathRich.bombus, bombusPara,
+prior <- c(set_prior("normal(0,1)", class="b"))
+fit.pathRich.bombus <- brm(bform.pathRich.bombus, bombusPath,
                          cores=1,
-                         iter = 10^4,
-                         chains = 3,
+                         iter = 10^5,
+                         chains = 4,
+                         prior=prior,
                          control = list(adapt_delta = 0.99))
 
 
 summary(fit.pathRich.bombus)
 # look at rhat. should be around 1. indicates convergence
-# then look at confidence interval. if centered right at 0, not sig
-# bigger gardens -> bee diversity, nat habitat -> bee abund
-# bombus pathogen richenss impacted by: 
+write.ms.table(fit.pathRich.bombus, "pathRichnessBombus")
+# ran it
 
 
-#apis with any pathogen, bayesian
+#bombus with any pathogen, bayesian
 bform.pathAny.bombus <- bf.bee.abund + bf.bee.div + bf.pathAny.bombus + 
   set_rescor(FALSE)
 
-fit.pathAny.bombus <- brm(bform.pathAny.bombus, bombusPara,
+prior <- c(set_prior("normal(0,1)", class="b"))
+fit.pathAny.bombus <- brm(bform.pathAny.bombus, bombusPath,
                         cores=1,
-                        iter = 10^4,
-                        chains = 3,
+                        iter = 10^5,
+                        chains = 4,
+                        prior=prior,
                         control = list(adapt_delta = 0.99))
 
 
 summary(fit.pathAny.bombus)
+write.ms.table(fit.pathAny.bombus, "pathAnyBombuschain")
+# ran it
+
+
+# FINAL MODELS for ms r1: combining parasites and pathogens together....
+# apis with par-path richness, bayesian
+
+bform.parpathRich.apis <- bf.bee.abund + bf.bee.div + bf.parpathRich.apis + 
+  set_rescor(FALSE)
+
+prior <- c(set_prior("normal(0,1)", class="b"))
+fit.parpathRich.apis <- brm(bform.parpathRich.apis, apisParaPath,
+                        cores=1,
+                        iter = 10^5,
+                        chains = 4,
+                        prior=prior,
+                        control = list(adapt_delta = 0.99))
+
+summary(fit.parpathRich.apis)
+
+# diagnostic plot is the trace plot, which is a time series plot of the Markov chains. 
+# That is, a trace plot shows the evolution of parameter vector over the iterations of one or many Markov chains.
+# confirm that all chains explore same region of parameter values
+mcmc_trace(fit.parpathRich.apis)
+ggsave("figures/bayesMods/ParPathRichnessApis.pdf",
+       height=11, width=8.5)
+
+
+write.ms.table(fit.parpathRich.apis, "parpathRichnessApis")
 # look at rhat. should be around 1. indicates convergence
-# then look at confidence interval. if centered right at 0, not sig
-# bigger gardens -> bee diversity, nat habitat -> bee abund
-# bombus pathogen rate impacted by: 
 
 
 
+# bombus with par-path richness, bayesian
+bform.parpathRich.bombus <- bf.bee.abund + bf.bee.div + bf.parpathRich.bombus + 
+  set_rescor(FALSE)
+prior <- c(set_prior("normal(0,1)", class="b"))
+
+fit.parpathRich.bombus <- brm(bform.parpathRich.bombus, bombusParaPath,
+                            cores=1,
+                            iter = 10^5,
+                            chains = 4,
+                            prior = prior,
+                            control = list(adapt_delta = 0.99))
+
+summary(fit.parpathRich.bombus)
+
+mcmc_trace(fit.parpathRich.bombus)
+ggsave("figures/bayesMods/ParPathRichnessBombus.pdf",
+       height=11, width=8.5)
+
+write.ms.table(fit.parpathRich.bombus, "parpathRichnessBombus")
+
+
+## save model results as .Rdata to call in later
+save.dir.git <- "~/Dropbox/urbanbeeparasites/data"
+save(fit.parpathRich.bombus, fit.parpathRich.apis,
+     file=file.path(save.dir.git, "CommunityHealthresults.Rdata"))
 
 
 
-# to do: 
-# show LCP the conceptual figure
-# do this with parasite and pathogen specific models
-# run all these models, output them in a nice csv or smething easy to read
-# make conceptual figures of them and a table - which goes into the ms? 
-# how do i report statistics to evaluate model fit? d-test shows if we could improve models with exclusion of hypothesized paths
-  #or inclusion of non hypothesized paths. 
-  #waic - google brms model fit and they might have good options. can't do d-test with the baysian approach 
-  
-# make scatterplots/effect plots of major findings. look at bee microbiome and see how made plot. use ggplot2. 
-# hard to plot binomial data
+# ###########################################################################
 
-# rerun with honey bee abund or with bumble bee abund instead of bee diversity or bee abund. 
-    # how do i evaluate which model is better?
-
-
-
-
-
-
-
-
-
-
-## bumble parasite richness 
-bombus.mods.Parrichness  = psem(
-  BeeDensity = do.call(lm,
-                       list(formula=formula.bee,
-                            data=site.char)),
-  ParPath = do.call(glmer,
-                    list(formula=formulas.par.path1[[1]],
-                         data = bombusPara,
-                         weights=bombusPara$PossibleParasite,
-                         family="binomial"))
-)
-
-summary(bombus.mods.Parrichness)
-
-site.mod <- do.call(lm,
-        list(formula=formula.bee,
-             data=site.char))
-
-
-bombus.mods.Parrichness <- summary(glmer(formula=formulas.par.path1[[1]], 
-                                         weights=bombusPara$PossibleParasite, 
-                                         family="binomial",
-                                         data = bombusPara))
-
-
-
-
-## bumble pathogen richness model
-bombus.mods.Pathrichness <- summary(glmer(formula=formulas.par.path1[[2]], 
-                                         weights=bombusPath$PossiblePathogen, 
-                                         family="binomial",
-                                         data = bombusPath))
-
-
-
-
-## apis parasite richness 
-apis.mods.Parrichness  = psem(
-  BeeDensity = do.call(lm,
-                       list(formula=formula.bee,
-                            data=site.char)),
-  ParPath = do.call(glmer,
-                    list(formula=formulas.par.path1[[1]],
-                         data = apisPara,
-                         weights=apisPara$PossibleParasite,
-                         family="binomial"))
-)
-
-site.mod <- do.call(lm,
-                    list(formula=formula.bee,
-                         data=site.char))
-
-
-apis.mods.Parrichness <- summary(glmer(formula=formulas.par.path1[[1]], 
-                                         weights=apisPara$PossibleParasite, 
-                                         family="binomial",
-                                         data = apisPara))
-
-
-
-
-## apis pathogen richness model
-bombus.mods.Pathrichness <- summary(glmer(formula=formulas.par.path1[[2]], 
-                                          weights=apisPath$PossiblePathogen, 
-                                          family="binomial",
-                                          data = apisPath))
-
-
-
-
-
-###not finished below
-
-## honey bees
-apis.mods <- lapply(formulas.par.path, calcMods,
-                    formula.bee, apis, site.char)
-
-names(apis.mods) <- names(bombus.mods) <- ys
-
-print("bombus")
-lapply(bombus.mods, summary)
-lapply(bombus.mods, rsquared)
-
-print("apis")
-lapply(apis.mods, summary)
-lapply(apis.mods, rsquared)
-
-## *************************************************************
-## sanity check using a linear models of Bee density
-## *************************************************************
-
+# 
+# 
+# 
+# # to do: 
+# # show LCP the conceptual figure
+# # CI is credible interval, NOT called confidence interval in bayesian
+# # do this with parasite and pathogen specific models
+# # run all these models, output them in a nice csv or smething easy to read
+# # make conceptual figures of them and a table - which goes into the ms? 
+# # how do i report statistics to evaluate model fit? d-test shows if we could improve models with exclusion of hypothesized paths
+#   #or inclusion of non hypothesized paths. 
+#   #waic - google brms model fit and they might have good options. can't do d-test with the baysian approach 
+#   
+# # make scatterplots/effect plots of major findings. look at bee microbiome and see how made plot. use ggplot2. 
+# # hard to plot binomial data
+# 
+# # rerun with honey bee abund or with bumble bee abund instead of bee diversity or bee abund. 
+#     # how do i evaluate which model is better?
+# 
+# 
+# 
+#
+# 
+# ## bumble parasite richness 
+# bombus.mods.Parrichness  = psem(
+#   BeeDensity = do.call(lm,
+#                        list(formula=formula.bee,
+#                             data=site.char)),
+#   ParPath = do.call(glmer,
+#                     list(formula=formulas.par.path1[[1]],
+#                          data = bombusPara,
+#                          weights=bombusPara$PossibleParasite,
+#                          family="binomial"))
+# )
+# 
+# summary(bombus.mods.Parrichness)
+# 
+# site.mod <- do.call(lm,
+#         list(formula=formula.bee,
+#              data=site.char))
+# 
+# 
+# bombus.mods.Parrichness <- summary(glmer(formula=formulas.par.path1[[1]], 
+#                                          weights=bombusPara$PossibleParasite, 
+#                                          family="binomial",
+#                                          data = bombusPara))
+# 
+# 
+# 
+# 
+# ## bumble pathogen richness model
+# bombus.mods.Pathrichness <- summary(glmer(formula=formulas.par.path1[[2]], 
+#                                          weights=bombusPath$PossiblePathogen, 
+#                                          family="binomial",
+#                                          data = bombusPath))
+# 
+# 
+# 
+# 
+# ## apis parasite richness 
+# apis.mods.Parrichness  = psem(
+#   BeeDensity = do.call(lm,
+#                        list(formula=formula.bee,
+#                             data=site.char)),
+#   ParPath = do.call(glmer,
+#                     list(formula=formulas.par.path1[[1]],
+#                          data = apisPara,
+#                          weights=apisPara$PossibleParasite,
+#                          family="binomial"))
+# )
+# 
+# site.mod <- do.call(lm,
+#                     list(formula=formula.bee,
+#                          data=site.char))
+# 
+# 
+# apis.mods.Parrichness <- summary(glmer(formula=formulas.par.path1[[1]], 
+#                                          weights=apisPara$PossibleParasite, 
+#                                          family="binomial",
+#                                          data = apisPara))
+# 
+# 
+# 
+# 
+# ## apis pathogen richness model
+# bombus.mods.Pathrichness <- summary(glmer(formula=formulas.par.path1[[2]], 
+#                                           weights=apisPath$PossiblePathogen, 
+#                                           family="binomial",
+#                                           data = apisPath))
+# 
+# 
+# 
+# 
+# 
+# ###not finished below
+# 
+# ## honey bees
+# apis.mods <- lapply(formulas.par.path, calcMods,
+#                     formula.bee, apis, site.char)
+# 
+# names(apis.mods) <- names(bombus.mods) <- ys
+# 
+# print("bombus")
+# lapply(bombus.mods, summary)
+# lapply(bombus.mods, rsquared)
+# 
+# print("apis")
+# lapply(apis.mods, summary)
+# lapply(apis.mods, rsquared)
+# 
+# ## *************************************************************
+# ## sanity check using a linear models of Bee density
+# ## *************************************************************
+# 
 library(car)
-#this says density, but we arent using density anymore
-bee.density.mod <- glm(BeeAbund ~ natural1000m +
+#bee abundance
+bee.abund.mod <- glm(BeeAbund ~ natural1000m +
                          AbundWoodyFlowers +
                          AbundAnnualFlowers + Size,
                        family="poisson",
                        data=site.char)
 
-AIC(bee.density.mod)
-vif(bee.density.mod)
-summary(bee.density.mod)
-plot(density(bee.density.mod$resid))
+AIC(bee.abund.mod)
+vif(bee.abund.mod)
+summary(bee.abund.mod)
+plot(density(bee.abund.mod$resid))
 
 
+#bee div
+bee.div.mod <- glm(BeeDiversity ~ natural1000m +
+                         AbundWoodyFlowers +
+                         AbundAnnualFlowers + Size,
+                       family="poisson",
+                       data=site.char)
 
+AIC(bee.div.mod)
+vif(bee.div.mod)
+summary(bee.div.mod)
+plot(density(bee.div.mod$resid))
+
+
+# 
