@@ -136,23 +136,44 @@ apisPara <- par.only[par.only$Genus == "Apis",]
 bf.bee.abund <- bf(formula.bee.abund)
 bf.bee.div <- bf(formula.bee.div)
 
-
+# parasites
 bf.Phorid.apis <- bf(formulas.par.apis[[1]],  family = "bernoulli")
 bf.Crithidia.apis <- bf(formulas.par.apis[[2]],  family="bernoulli")
 bf.Apicystis.apis <- bf(formulas.par.apis[[2]],  family="bernoulli")
 
 bf.Phorid.bombus <- bf(formulas.par.bombus[[1]],  family = "bernoulli")
 bf.Crithidia.bombus <- bf(formulas.par.bombus[[2]],  family="bernoulli")
-bf.Apicystis.bombuys <- bf(formulas.par.bombus[[2]],  family="bernoulli")
-
-#next do pathogens
+bf.Apicystis.bombuss <- bf(formulas.par.bombus[[2]],  family="bernoulli")
 
 
+#pathogens
 
 
+## PSEMS HONEY BEES
+
+# apis with Phorid, bayesian
+bform.Phorid.apis <- bf.bee.abund + bf.bee.div + bf.Phorid.apis + 
+    set_rescor(FALSE)
+
+fit.Phorid.apis  <- brm(bform.Phorid.apis , apisPara,
+                        cores=1,
+                        iter = 10^5,
+                        chains = 4,
+                        control = list(adapt_delta = 0.99))
+
+summary(fit.Phorid.apis)
+
+write.ms.table(fit.Phorid.apis, "Phorid.apis")
+# look at rhat. should be around 1. indicates convergence
+# then look at confidence interval. if centered right at 0, not sig
+# bigger gardens marginally -> bee diversity, nat habitat -> bee abund
+# apis parasite richenss impacted by: nothing
+# ran it
 
 
-
+save.dir.git <- "~/Dropbox/urbanbeeparasites/data"
+save(fit.Phorid.apis,
+     file=file.path(save.dir.git, "CommunityHealthresults.Rdata"))
 
 
 ## *************************************************************
