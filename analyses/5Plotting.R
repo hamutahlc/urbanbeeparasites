@@ -57,7 +57,7 @@ p1.parasite  <- fit.parpathRich.bombus %>%
   geom_line() +
   geom_ribbon(aes(ymin=pred_low_95, ymax = pred_high_95), alpha = 0.2,
               fill="blue4") +
-  ylab("Parasite and Pathogen Richness") +
+  ylab("Parasite and Pathogen Richness in Bumble Bees") +
   xlab("Bee Community Diversity") +
   ylim(0,1)  +
   xlim(range(par.and.path$BeeDiversity))  +
@@ -71,18 +71,15 @@ p1.parasite  <- fit.parpathRich.bombus %>%
   geom_point(data=par.and.path[par.and.path$Weights == 1,],
              aes(y=ParPathRichness, x=BeeDiversity))
 
-ggsave("figures/parpath_apis_beeDiversity.pdf",
+ggsave("figures/parpath_bombus_beeDiversity.pdf",
        height=4, width=5)
   
-            
 
 
 ## **************************************************************
 ## parasite/path richness in bombus: abund perennials
 ## **************************************************************
 
-
-#cgane to binomial steps
 
 p2.parasite  <- fit.parpathRich.bombus %>%
   spread_draws(b_ParPathRichness_Intercept,
@@ -104,7 +101,7 @@ p2.parasite  <- fit.parpathRich.bombus %>%
   geom_line() +
   geom_ribbon(aes(ymin=pred_low_95, ymax = pred_high_95), alpha = 0.2,
               fill="blue4") +
-  ylab("Parasite and Pathogen Richness") +
+  ylab("Parasite and Pathogen Richness in Bumble Bees") +
   xlab("Abundance Flowering Perennials") +
   ylim(0,1)  +
   xlim(range(par.and.path$AbundWoodyFlowers))  +
@@ -119,7 +116,7 @@ p2.parasite  <- fit.parpathRich.bombus %>%
              aes(y=ParPathRichness, x=AbundWoodyFlowers))
 
 
-ggsave("figures/parpath_apis_AbundWoodyFlowers.pdf",
+ggsave("figures/parpath_bombus_AbundWoodyFlowers.pdf",
        height=4, width=5)
 
 
@@ -130,9 +127,89 @@ ggsave("figures/parpath_apis_AbundWoodyFlowers.pdf",
 ## **************************************************************
 
 
+p3.parasite  <- fit.parpathRich.bombus %>%
+  spread_draws(b_ParPathRichness_Intercept,
+               b_ParPathRichness_Size) %>%
+  mutate(Size = 
+           list(seq(range(par.and.path$Size)[1],
+                    range(par.and.path$Size)[2],
+                    0.01))) %>%
+  unnest(Size) %>%
+  mutate(pred = exp(b_ParPathRichness_Intercept +
+                      b_ParPathRichness_Size*Size)) %>%
+  group_by(Size) %>%
+  summarise(pred_m = mean(pred, na.rm = TRUE),
+            pred_low_95 = quantile(pred, prob = 0.025),
+            pred_high_95 = quantile(pred, prob = 0.975),
+            pred_low_85 = quantile(pred, prob = 0.075),
+            pred_high_85 = quantile(pred, prob = 0.925)) %>%
+  ggplot(aes(x = Size, y=pred_m)) +
+  geom_line() +
+  geom_ribbon(aes(ymin=pred_low_95, ymax = pred_high_95), alpha = 0.2,
+              fill="blue4") +
+  ylab("Parasite and Pathogen Richness in Bumble Bees") +
+  xlab("Garden Size") +
+  ylim(0,1)  +
+  xlim(range(par.and.path$Size))  +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.line = element_line(colour = "black"),
+        axis.title.x = element_text(size=16),
+        axis.title.y = element_text(size=16),
+        text = element_text(size=16)) +
+  geom_point(data=par.and.path[par.and.path$Weights == 1,],
+             aes(y=ParPathRichness, x=Size))
+
+
+ggsave("figures/parpath_bombus_Size.pdf",
+       height=4, width=5)
+
+
+
+
 ## **************************************************************
 ## parasite/path richness in bombus: apis parasite rates
 ## **************************************************************
+
+
+p3.parasite  <- fit.parpathRich.bombus %>%
+  spread_draws(b_ParPathRichness_Intercept,
+               b_ParPathRichness_apis.parpath.rate) %>%
+  mutate(apis.parpath.rate = 
+           list(seq(range(par.and.path$apis.parpath.rate)[1],
+                    range(par.and.path$apis.parpath.rate)[2],
+                    0.01))) %>%
+  unnest(apis.parpath.rate) %>%
+  mutate(pred = exp(b_ParPathRichness_Intercept +
+                      b_ParPathRichness_apis.parpath.rate*apis.parpath.rate)) %>%
+  group_by(apis.parpath.rate) %>%
+  summarise(pred_m = mean(pred, na.rm = TRUE),
+            pred_low_95 = quantile(pred, prob = 0.025),
+            pred_high_95 = quantile(pred, prob = 0.975),
+            pred_low_85 = quantile(pred, prob = 0.075),
+            pred_high_85 = quantile(pred, prob = 0.925)) %>%
+  ggplot(aes(x = apis.parpath.rate, y=pred_m)) +
+  geom_line() +
+  geom_ribbon(aes(ymin=pred_low_95, ymax = pred_high_95), alpha = 0.2,
+              fill="blue4") +
+  ylab("Parasite and Pathogen Richness in Bumble Bees") +
+  xlab("Parasite and Pathogen Rate in Honey Bees") +
+  ylim(0,1)  +
+  xlim(range(par.and.path$apis.parpath.rate))  +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.line = element_line(colour = "black"),
+        axis.title.x = element_text(size=16),
+        axis.title.y = element_text(size=16),
+        text = element_text(size=16)) +
+  geom_point(data=par.and.path[par.and.path$Weights == 1,],
+             aes(y=ParPathRichness, x=apis.parpath.rate))
+
+
+ggsave("figures/parpath_bombus_apis.parpath.rate.pdf",
+       height=4, width=5)
 
 
 ## **************************************************************
@@ -141,6 +218,6 @@ ggsave("figures/parpath_apis_AbundWoodyFlowers.pdf",
 
 parasite.apis.all <- grid.arrange(p1.parasite, p2.parasite, p3.parasite, p4.parasite, ncol=2)
 
-ggsave(parasite.apis.all, file="figures/parpath_apis.pdf",
+ggsave(parasite.apis.all, file="figures/parpath_bombus.pdf",
        height=4, width=10)
 
