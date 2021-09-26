@@ -15,29 +15,16 @@ install.packages("glmmADMB",
                  repos=c("http://glmmadmb.r-forge.r-project.org/repos",
                          getOption("repos")),
                  type="source")
+
+library(rstan)
+auto_write = TRUE
 library(brms)
+
 
 load("../data/specimens-complete.Rdata")
 
 
 ##***********Prep data for bayesian analyses************
-
-## make weights. take site.char and pass it to the function that lauren wrote
-makeDataMultiLevel <- function(indiv.data){
-  site.ids <- unlist(tapply(indiv.data$Site,
-                            indiv.data$Site,
-                            function(x) 1:length(x)))
-  names(site.ids) <- NULL
-  indiv.data$SiteIDs <- site.ids
-  indiv.data$Weights <- indiv.data$SiteIDs
-  indiv.data$Weights[indiv.data$Weights > 1] <- 0
-  return(indiv.data)
-}
-
-
-par.and.path <- par.and.path [order(par.and.path $Site),]
-par.and.path <- makeDataMultiLevel(par.and.path)
-
 
 
 
@@ -105,15 +92,35 @@ formulas.parpath.bombus <-lapply(ys3, function(x) {
 
 ## **********************psem ***************************************
 
-
 # split apis and bombus data
 
 bombusParaPath <- par.and.path[par.and.path$Genus == "Bombus",]
 apisParaPath <- par.and.path[par.and.path$Genus == "Apis",]
 
+
+## make weights. take site.char and pass it to the function that lauren wrote
+makeDataMultiLevel <- function(indiv.data){
+  site.ids <- unlist(tapply(indiv.data$Site,
+                            indiv.data$Site,
+                            function(x) 1:length(x)))
+  names(site.ids) <- NULL
+  indiv.data$SiteIDs <- site.ids
+  indiv.data$Weights <- indiv.data$SiteIDs
+  indiv.data$Weights[indiv.data$Weights > 1] <- 0
+  return(indiv.data)
+}
+
+
+bombusParaPath <- bombusParaPath[order(bombusParaPath$Site),]
+apisParaPath <- apisParaPath[order(apisParaPath$Site),]
+
+bombusParaPath<- makeDataMultiLevel(bombusParaPath)
+apisParaPath<- makeDataMultiLevel(apisParaPath)
+
 # models for site effects on community, make compatible with bayesian analyses
 bf.apis.abund <- bf(formula.apis.abund)
 bf.bombus.abund <- bf(formula.bombus.abund)
+
 
 #models
 
@@ -140,7 +147,7 @@ write.ms.table(fit.parpathRich.apis.HostAbund,"parpathRich.apis.HostAbund")
 
 save.dir.git <- "~/Dropbox/urbanbeeparasites/data"
 save(fit.parpathRich.apis.HostAbund, 
-     file=file.path(save.dir.git, "CommunityHealthHostAbundResults.Rdata"))
+     file=file.path(save.dir.git, "CommunityHealthHostAbundResultsApis.Rdata"))
 
 
 #psem for par and path richness in Bombus
@@ -162,14 +169,15 @@ summary(fit.parpathRich.bombus.HostAbund)
 write.ms.table(fit.parpathRich.bombus.HostAbund,"parpathRich.bombus.HostAbund")
 
 save.dir.git <- "~/Dropbox/urbanbeeparasites/data"
-save(fit.parpathRich.apis.HostAbund, fit.parpathRich.bombus.HostAbund, 
-     file=file.path(save.dir.git, "CommunityHealthHostAbundResults.Rdata"))
+save(fit.parpathRich.bombus.HostAbund, 
+     file=file.path(save.dir.git, "CommunityHealthHostAbundResultsBombus.Rdata"))
 
 
 ##***********Compare host abund models to original models************
 
 load("~/Dropbox/urbanbeeparasites/data/CommunityHealthresults.Rdata")
-load("~/Dropbox/urbanbeeparasites/data/CommunityHealthHostAbundResults.Rdata")
+load("~/Dropbox/urbanbeeparasites/data/CommunityHealthHostAbundResultsApis.Rdata")
+load("~/Dropbox/urbanbeeparasites/data/CommunityHealthHostAbundResultsBombus.Rdata")
 
 waic(fit.parpathRich.bombus.HostAbund, fit.parpathRich.bombus, compare=TRUE,pointwise = FALSE)
 
