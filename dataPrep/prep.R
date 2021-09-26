@@ -58,6 +58,10 @@ path.only <- path.only[!path.only$Site == "Control",]
 ## since the way the screenign occured is that a subset of bees sampled for parasites were sampled for pathogens
 ## path.only.either <- path.only[!is.na(path.only$B.actin) | !is.na(path.only$Phorid),]
 
+#combo par and path
+par.and.path <- path.only
+
+#par only and path only
 par.only <- path.only
 par.only$CBPV <- NULL
 par.only$DWV_KV_VDV <- NULL
@@ -71,7 +75,7 @@ path.only$Phorid <- NULL
 path.only$Crithidia <- NULL
 path.only$Apicystis <- NULL
 
-## make sure each datafram has samples screened for every single par/path, 
+## make sure each dataframe has samples screened for every single par/path, 
 path.only <- path.only[!is.na(path.only$B.actin),]
 path.only <- path.only[!is.na(path.only$CBPV),]
 path.only <- path.only[!is.na(path.only$DWV_KV_VDV),]
@@ -84,6 +88,17 @@ par.only <- par.only[!is.na(par.only$Phorid),]
 par.only <- par.only[!is.na(par.only$Crithidia),]
 par.only <- par.only[!is.na(par.only$Apicystis),]
 
+par.and.path$B.actin <- NULL
+par.and.path <- par.and.path[!is.na(par.and.path$CBPV),]
+par.and.path <- par.and.path[!is.na(par.and.path$DWV_KV_VDV),]
+par.and.path <- par.and.path[!is.na(par.and.path$ABPV_KBV_IAPV),]
+par.and.path <- par.and.path[!is.na(par.and.path$BQCV),]
+par.and.path <- par.and.path[!is.na(par.and.path$SBPV),]
+par.and.path <- par.and.path[!is.na(par.and.path$SBV),]
+par.and.path<- par.and.path[!is.na(par.and.path$Phorid),]
+par.and.path <- par.and.path[!is.na(par.and.path$Crithidia),]
+par.and.path <- par.and.path[!is.na(par.and.path$Apicystis),]
+
 
 ## drop B.actin equals zero, i.e. 
 path.only <- path.only[!path.only$B.actin == 0,]
@@ -93,6 +108,8 @@ parasites <- c("Phorid", "Crithidia", "Apicystis")
 
 pathogens <- c("CBPV", "DWV_KV_VDV", "ABPV_KBV_IAPV", "BQCV","SBPV", "SBV")
 
+parandpath <- c("CBPV", "DWV_KV_VDV", "ABPV_KBV_IAPV", "BQCV","SBPV", "SBV","Phorid", "Crithidia", "Apicystis")
+
 par.only$ParasiteRichness <- rowSums(par.only[,parasites],na.rm=TRUE)
 par.only$PossibleParasite <- apply(par.only[,parasites],1,function(x) sum(!is.na(x)))
 par.only$AnyParasite <- (par.only$ParasiteRichness > 0)*1
@@ -101,14 +118,33 @@ path.only$PathogenRichness <- rowSums(path.only[,pathogens],na.rm=TRUE)
 path.only$PossiblePathogen <- apply(path.only[,pathogens],1,function(x) sum(!is.na(x)))
 path.only$AnyPathogen <- (path.only$PathogenRichness > 0)*1
 
+par.and.path$ParPathRichness <- rowSums(par.and.path[,parandpath ],na.rm=TRUE)
+par.and.path$PossibleParPath <- apply(par.and.path[,parandpath ],1,function(x) sum(!is.na(x)))
+par.and.path$AnyParPath <- (par.and.path$ParPathRichnes > 0)*1
+
+
 #potentially useful variable
 par.only$ParasiteRichnessRate <- par.only$ParasiteRichness/par.only$PossibleParasite
 path.only$PathogenRichnessRate <- path.only$PathogenRichness/path.only$PossiblePathogen
 
 
-
-
 ## *************************************************************
+
+
+print("Bombus par/path richness")
+table(par.and.path$ParPathRichness[par.and.path$Genus == "Bombus"])/nrow(par.and.path[par.and.path$Genus == "Bombus",])
+
+print("Apis par/path richness")
+table(par.and.path$ParPathRichness[par.and.path$Genus == "Bombus"])/nrow(par.and.path[par.and.path$Genus == "Apis",])
+
+print("ParPath Bombus")
+colSums(par.and.path[par.and.path$Genus ==  "Bombus", parandpath])/
+  sum(par.and.path$Genus ==  "Bombus")
+
+print("ParPath Apis")
+colSums(par.and.path[par.and.path$Genus ==  "Apis", parandpath])/
+  sum(par.and.path$Genus ==  "Apis")
+
 print("Bombus parasite richness")
 table(par.only$ParasiteRichness[par.only$Genus == "Bombus"])/nrow(par.only[par.only$Genus == "Bombus",])
 
@@ -123,8 +159,6 @@ print("Parasites Apis")
 colSums(par.only[par.only$Genus ==  "Apis", parasites])/
     sum(par.only$Genus ==  "Apis")
 
-path.only$PathogenRichness <- rowSums(path.only[, pathogens])
-path.only$AnyPathogen <- (path.only$PathogenRichness > 0)*1
 
 print("Bombus pathogen richness")
 table(path.only$PathogenRichness[path.only$Genus == "Bombus"])/
@@ -278,8 +312,29 @@ sick.totals$ScreenedPath <- tested.totals$CBPV
 sick.totals[,pathogens] <-
   sick.totals[,pathogens]/sick.totals$ScreenedPath
 
+
+## calculate total sick individuals for each site with parasites and pathogens, bad thing
+
+parpath.totals <- aggregate(par.and.path[c(parandpath)],
+                        list(Site=par.and.path$Site,
+                             Genus=par.and.path$Genus),
+                        sum, na.rm=TRUE)
+
+tested.totals <- aggregate(par.and.path[c(parandpath)],
+                           list(Site=par.and.path$Site,
+                                Genus=par.and.path$Genus),
+                           function(x) sum(!is.na(x)))
+
+parpath.totals$ScreenedParPath <- tested.totals$Phorid
+
+parpath.totals[,parandpath] <-
+  parpath.totals[,parandpath]/parpath.totals$ScreenedParPath
 ## *************************************************************
 ## calculate parasite/pathogen rates in apis and parsaite/pathogen rates in bombus
+
+par.path.rates <- par.and.path%>%
+  group_by(Site, Genus) %>%
+  summarise(parpath.rates = mean(AnyParPath))
 
 par.rates <- par.only %>%
   group_by(Site, Genus) %>%
@@ -291,13 +346,19 @@ path.rates <- path.only %>%
 
 names(par.rates)[names(par.rates) == "Site"] <- "site"
 names(path.rates)[names(path.rates) == "Site"] <- "site"
+names(par.path.rates)[names(par.path.rates) == "Site"] <- "site"
 
-
+apis.parpath.rate <- par.path.rates[par.path.rates$Genus == "Apis",]
+bombus.parpath.rate <- par.path.rates[par.path.rates$Genus == "Bombus",]
 apis.par.rate <- par.rates[par.rates$Genus == "Apis",]
 bombus.par.rate <- par.rates[par.rates$Genus == "Bombus",]
 apis.path.rate <- path.rates[path.rates$Genus == "Apis",]
 bombus.path.rate <- path.rates[path.rates$Genus == "Bombus",]
 
+colnames(apis.parpath.rate)[colnames(apis.parpath.rate) == "parpath.rates"]  <-
+  "apis.parpath.rate"
+colnames(bombus.parpath.rate)[colnames(bombus.parpath.rate) == "parpath.rates"]  <-
+  "bombus.parpath.rate"
 colnames(apis.par.rate)[colnames(apis.par.rate) == "par.rates"]  <-
   "apis.par.rate"
 colnames(bombus.par.rate)[colnames(bombus.par.rate) == "par.rates"]  <-
@@ -311,16 +372,22 @@ apis.par.rate$Genus <- NULL
 bombus.par.rate$Genus <- NULL
 apis.path.rate$Genus <- NULL
 bombus.path.rate$Genus <- NULL
+apis.parpath.rate$Genus <- NULL
+bombus.parpath.rate$Genus <- NULL
 
 site.char <- merge(site.char, apis.par.rate,  all.x=TRUE)
 site.char <- merge(site.char, bombus.par.rate,  all.x=TRUE)
 site.char <- merge(site.char, apis.path.rate,  all.x=TRUE)
 site.char <- merge(site.char, bombus.path.rate,  all.x=TRUE)
+site.char <- merge(site.char, apis.parpath.rate,  all.x=TRUE)
+site.char <- merge(site.char, bombus.parpath.rate,  all.x=TRUE)
 
 site.char$apis.par.rate[is.na(site.char$apis.par.rate)] <- 0
 site.char$bombus.par.rate[is.na(site.char$bombus.par.rate)] <- 0
 site.char$apis.path.rate[is.na(site.char$apis.path.rate)] <- 0
 site.char$bombus.path.rate[is.na(site.char$bombus.path.rate)] <- 0
+site.char$apis.parpath.rate[is.na(site.char$apis.parpath.rate)] <- 0
+site.char$bombus.parpath.rate[is.na(site.char$bombus.parpath.rate)] <- 0
 
 
 ## *************************************************************
@@ -351,6 +418,9 @@ site.char$bombus.path.rate[is.na(site.char$bombus.path.rate)] <- 0
 ## *************************************************************
 ## merge parasite and pathogen and site data into specimens.complete
 
+par.and.path$Site[!par.and.path$Site %in% site.char$Site]
+par.and.path$Date <- NULL
+
 ## merge pathogen and site data first
 path.only$Site[!path.only$Site %in% site.char$Site]
 
@@ -364,12 +434,15 @@ colnames(site.char)[colnames(site.char) == 'site'] <- 'Site'
 path.only <- merge(path.only, site.char)
 dim(path.only)
 
+par.and.path <- merge(par.and.path, site.char)
+dim(par.and.path)
+
 ## merge parasite and site data 
 par.only$Site[!par.only$Site %in% site.char$Site]
 
 dim(par.only)
 par.only$Date <- NULL
-par.only <- merge(par.only , site.char)
+par.only <- merge(par.only, site.char)
 dim(par.only)
 
 sick.totals <- merge(sick.totals, site.char)
@@ -381,10 +454,13 @@ write.csv(path.only, file=file.path(save.dir,
 write.csv(par.only, file=file.path(save.dir,
                                    "specimens-completeParasite.csv"), row.names=FALSE)
 
+write.csv(par.and.path, file=file.path(save.dir,
+                                   "specimens-completeParPath.csv"), row.names=FALSE)
+
 ## save.dir.git <- "/Volumes/Mac\ 2/Dropbox/urbanbeeparasites/data"
 
 save.dir.git <- "~/Dropbox/urbanbeeparasites/data"
-save(path.only, par.only,
+save(path.only, par.only, par.and.path,
      site.char, sick.totals,
      file=file.path(save.dir.git, "specimens-complete.Rdata"))
 
